@@ -1,26 +1,63 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-cream: #fdf8ef;
+  --color-cream-soft: #f6ede0;
+  --color-forest: #1e5631;
+  --color-forest-dark: #123a20;
+  --color-forest-light: #2f7a48;
+  --color-terracotta: #c2542a;
+  --color-terracotta-dark: #9c4020;
+  --color-amber: #d98324;
+  --color-walnut: #6b4a31;
+  --color-walnut-dark: #4a3220;
+  --color-ink: #24211c;
+  --color-ink-soft: #4a453d;
+  --color-line: #e6dcc8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-cream: var(--color-cream);
+  --color-cream-soft: var(--color-cream-soft);
+  --color-forest: var(--color-forest);
+  --color-forest-dark: var(--color-forest-dark);
+  --color-forest-light: var(--color-forest-light);
+  --color-terracotta: var(--color-terracotta);
+  --color-terracotta-dark: var(--color-terracotta-dark);
+  --color-amber: var(--color-amber);
+  --color-walnut: var(--color-walnut);
+  --color-walnut-dark: var(--color-walnut-dark);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-line: var(--color-line);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-fraunces);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: var(--color-forest);
+  color: var(--color-cream);
+}
+
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+
+  .id-card {
+    width: 85.6mm !important;
+    height: 54mm !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }
