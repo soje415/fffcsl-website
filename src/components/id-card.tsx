@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
+import logoIcon from "@/assets/brand/logo-icon.jpeg";
 import type { RegistrationData } from "@/types/registration";
 
 export function IdCard({ data }: { data: RegistrationData }) {
@@ -18,20 +19,16 @@ export function IdCard({ data }: { data: RegistrationData }) {
       {/* Front */}
       <div className="id-card relative flex aspect-[340/214] w-[min(340px,88vw)] shrink-0 flex-col overflow-hidden rounded-2xl border border-forest-dark bg-forest-dark text-cream shadow-md">
         <Image
-          src="/brand/logo-icon.jpeg"
+          src={logoIcon}
           alt=""
-          width={260}
-          height={191}
           className="pointer-events-none absolute -right-10 -top-6 h-auto w-40 rotate-6 opacity-[0.08] mix-blend-luminosity"
         />
 
         <div className="relative flex items-center gap-2 border-b border-cream/15 bg-black/10 px-4 py-2.5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white">
             <Image
-              src="/brand/logo-icon.jpeg"
+              src={logoIcon}
               alt=""
-              width={44}
-              height={33}
               className="h-6 w-auto object-contain"
             />
           </span>

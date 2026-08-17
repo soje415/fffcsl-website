@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import logoIcon from "@/assets/brand/logo-icon.jpeg";
 
 const NAV_LINKS = [
   { href: "/about", label: "About Us" },
@@ -31,10 +32,8 @@ export function SiteHeader() {
         >
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-line sm:h-16 sm:w-16">
             <Image
-              src="/brand/logo-icon.jpeg"
+              src={logoIcon}
               alt="FFFCSL logo"
-              width={112}
-              height={82}
               className="h-11 w-auto object-contain sm:h-12"
               priority
             />

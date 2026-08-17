@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import logoIcon from "@/assets/brand/logo-icon.jpeg";
 
 const EXPLORE_LINKS = [
   { href: "/about", label: "About Us" },
@@ -25,10 +26,8 @@ export function SiteFooter() {
             <div className="flex items-center gap-3">
               <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white ring-1 ring-cream/30">
                 <Image
-                  src="/brand/logo-icon.jpeg"
+                  src={logoIcon}
                   alt="FFFCSL logo"
-                  width={112}
-                  height={82}
                   className="h-12 w-auto object-contain"
                 />
               </span>
