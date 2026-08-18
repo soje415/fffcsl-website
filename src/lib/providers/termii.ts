@@ -7,7 +7,7 @@ function config() {
       "Termii is not configured (set TERMII_API_KEY, TERMII_SENDER_ID and TERMII_BASE_URL)."
     );
   }
-  return { apiKey, senderId, baseUrl };
+  return { apiKey, senderId, baseUrl: baseUrl.replace(/\/+$/, "") };
 }
 
 /**
@@ -75,4 +75,28 @@ export async function verifyOtp(pinId: string, pin: string): Promise<boolean> {
   }
 
   return payload.verified === true || String(payload.verified).toLowerCase() === "true";
+}
+
+export async function sendSms(phone: string, message: string): Promise<void> {
+  const { apiKey, senderId, baseUrl } = config();
+  const res = await fetch(`${baseUrl}/api/sms/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      api_key: apiKey,
+      to: toInternational(phone),
+      from: senderId,
+      sms: message,
+      type: "plain",
+      channel: process.env.TERMII_CHANNEL ?? "generic",
+    }),
+  });
+
+  if (!res.ok) {
+    const payload = (await res.json().catch(() => null)) as {
+      message?: string;
+      error?: string;
+    } | null;
+    throw new Error(payload?.message ?? payload?.error ?? `Termii SMS failed (${res.status})`);
+  }
 }

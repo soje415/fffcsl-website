@@ -108,7 +108,7 @@ export function RegistrationWizard() {
     <ConsentStep key="4" data={data} update={update} onNext={next} onBack={back} />,
     <PaymentStep key="5" data={data} update={update} onNext={next} onBack={back} />,
     <VerificationStep key="6" data={data} update={update} onNext={next} onBack={back} />,
-    <SuccessStep key="7" data={data} onStartNew={startNew} />,
+    <SuccessStep key="7" data={data} update={update} onStartNew={startNew} />,
   ];
 
   return (

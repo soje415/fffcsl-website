@@ -6,6 +6,7 @@ import { Copy, Check, Loader2, Banknote } from "lucide-react";
 import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
 import { hyparrowVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
+import { otpProvider } from "@/lib/providers/otp-provider";
 import type { RegistrationData } from "@/types/registration";
 
 const FEE = 3000;
@@ -21,7 +22,7 @@ export function PaymentStep({
   onNext: () => void;
   onBack: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [generating, setGenerating] = useState(false);
   const [checking, setChecking] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -68,6 +69,18 @@ export function PaymentStep({
       );
       if (status === "paid") {
         update({ paymentStatus: "paid" });
+        if (!data.paymentSmsSent && data.phone) {
+          const message =
+            lang === "ha"
+              ? "An karɓi biyan kuɗi! An tabbatar da kuɗin katin shaida na N3,000 na FFFCSL. Na gode."
+              : "Payment received! Your N3,000 FFFCSL ID card fee is confirmed. Thank you.";
+          otpProvider
+            .sendSms(data.phone, message)
+            .then(() => update({ paymentSmsSent: true }))
+            .catch(() => {
+              /* SMS is best-effort; do not block confirmation */
+            });
+        }
       } else if (!silent) {
         setError(
           t(

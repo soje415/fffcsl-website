@@ -1,18 +1,42 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PartyPopper, Printer, UserPlus } from "lucide-react";
 import { IdCard } from "@/components/id-card";
+import { useLanguage } from "@/components/registration/language";
+import { otpProvider } from "@/lib/providers/otp-provider";
 import type { RegistrationData } from "@/types/registration";
 
 export function SuccessStep({
   data,
+  update,
   onStartNew,
 }: {
   data: RegistrationData;
+  update: (patch: Partial<RegistrationData>) => void;
   onStartNew: () => void;
 }) {
+  const { lang } = useLanguage();
+  const sentRef = useRef(false);
+
+  useEffect(() => {
+    if (sentRef.current || data.welcomeSmsSent || !data.phone) return;
+    sentRef.current = true;
+    const message =
+      lang === "ha"
+        ? `Barka ${data.firstName}, rajistar FFFCSL ɗinka ta cika. ID na memba: ${data.memberId}. Ka kiyaye wannan ID.`
+        : `Congratulations ${data.firstName}, your FFFCSL registration is complete. Member ID: ${data.memberId}. Keep this ID safe.`;
+    otpProvider
+      .sendSms(data.phone, message)
+      .then(() => update({ welcomeSmsSent: true }))
+      .catch(() => {
+        /* do not block the success screen if SMS fails */
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -23,11 +47,12 @@ export function SuccessStep({
         <PartyPopper size={26} />
       </div>
       <h2 className="mt-4 font-serif text-2xl font-semibold text-forest-dark">
-        Welcome to FFFCSL, {data.firstName}
+        {lang === "ha" ? `Barka da zuwa FFFCSL, ${data.firstName}` : `Welcome to FFFCSL, ${data.firstName}`}
       </h2>
       <p className="mt-2 max-w-md text-sm text-ink-soft">
-        Your membership is active and your official ID card is ready. You can
-        print it now or return anytime from your member portal.
+        {lang === "ha"
+          ? "Zama memba ɗinka ya kunna kuma katin shaida ɗinka a shirye. Kana iya buga shi yanzu ko dawo daga tashar memba a kowane lokaci."
+          : "Your membership is active and your official ID card is ready. You can print it now or return anytime from your member portal."}
       </p>
 
       <div className="mt-8">
@@ -41,7 +66,7 @@ export function SuccessStep({
           className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark"
         >
           <Printer size={16} />
-          Print / Save as PDF
+          {lang === "ha" ? "Buga / Ajiye PDF" : "Print / Save as PDF"}
         </button>
         <button
           type="button"
@@ -49,13 +74,13 @@ export function SuccessStep({
           className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-6 py-3 text-sm font-semibold text-forest-dark transition-colors hover:border-forest/40"
         >
           <UserPlus size={16} />
-          Register Another Farmer
+          {lang === "ha" ? "Rijistar Wani Manomi" : "Register Another Farmer"}
         </button>
         <Link
           href="/"
           className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-ink-soft transition-colors hover:text-forest-dark"
         >
-          Return to Homepage
+          {lang === "ha" ? "Koma Shafin Farko" : "Return to Homepage"}
         </Link>
       </div>
     </motion.div>

@@ -28,6 +28,9 @@ export type RegistrationData = {
   consentData: boolean;
   consentTerms: boolean;
 
+  welcomeSmsSent: boolean;
+  paymentSmsSent: boolean;
+
   paymentStatus: "pending" | "paid";
   virtualAccountNumber: string;
   virtualAccountBank: string;
@@ -67,6 +70,9 @@ export const EMPTY_REGISTRATION: RegistrationData = {
 
   consentData: false,
   consentTerms: false,
+
+  welcomeSmsSent: false,
+  paymentSmsSent: false,
 
   paymentStatus: "pending",
   virtualAccountNumber: "",

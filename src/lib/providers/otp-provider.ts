@@ -27,4 +27,8 @@ export const otpProvider = {
     );
     return data.verified;
   },
+
+  async sendSms(phone: string, message: string): Promise<void> {
+    await postJson<{ success: boolean }>("/api/termii/sms", { phone, message });
+  },
 };
