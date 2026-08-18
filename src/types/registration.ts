@@ -1,3 +1,5 @@
+export type KycType = "" | "bvn" | "nin";
+
 export type RegistrationData = {
   firstName: string;
   lastName: string;
@@ -13,7 +15,7 @@ export type RegistrationData = {
   state: string;
   lga: string;
   community: string;
-  primaryCrop: string;
+  crops: string[];
   farmSizeHectares: string;
   yearsFarming: string;
   cluster: string;
@@ -28,9 +30,10 @@ export type RegistrationData = {
   paymentStatus: "pending" | "paid";
   virtualAccountNumber: string;
   virtualAccountBank: string;
+  virtualAccountCustomerId: string;
 
-  bvn: string;
-  nin: string;
+  kycType: KycType;
+  kycNumber: string;
   verificationStatus: "pending" | "verified" | "mismatch";
 
   memberId: string;
@@ -51,7 +54,7 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   state: "",
   lga: "",
   community: "",
-  primaryCrop: "",
+  crops: [],
   farmSizeHectares: "",
   yearsFarming: "",
   cluster: "",
@@ -66,9 +69,10 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   paymentStatus: "pending",
   virtualAccountNumber: "",
   virtualAccountBank: "",
+  virtualAccountCustomerId: "",
 
-  bvn: "",
-  nin: "",
+  kycType: "",
+  kycNumber: "",
   verificationStatus: "pending",
 
   memberId: "",

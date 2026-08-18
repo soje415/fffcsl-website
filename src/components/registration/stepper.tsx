@@ -1,12 +1,26 @@
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STEP_LABELS } from "@/types/registration";
+import { useLanguage } from "@/components/registration/language";
+
+const HAUSA_STEP_LABELS = [
+  "Bayanan kai",
+  "Adireshi da gona",
+  "Mai kula da kai",
+  "Yarjejeniya",
+  "Biya",
+  "Tabbatar da asali",
+  "Katin zama memba",
+];
 
 export function Stepper({ current }: { current: number }) {
+  const { lang } = useLanguage();
+  const labels = lang === "ha" ? HAUSA_STEP_LABELS : STEP_LABELS;
+
   return (
     <div>
       <div className="hidden items-center sm:flex">
-        {STEP_LABELS.map((label, i) => (
+        {labels.map((label, i) => (
           <div key={label} className="flex flex-1 items-center last:flex-none">
             <div className="flex flex-col items-center gap-1.5">
               <div
@@ -28,7 +42,7 @@ export function Stepper({ current }: { current: number }) {
                 {label}
               </span>
             </div>
-            {i < STEP_LABELS.length - 1 && (
+            {i < labels.length - 1 && (
               <div
                 className={cn(
                   "mx-1 h-px flex-1",
@@ -42,12 +56,13 @@ export function Stepper({ current }: { current: number }) {
 
       <div className="sm:hidden">
         <p className="text-xs font-semibold text-forest-dark">
-          Step {current + 1} of {STEP_LABELS.length}: {STEP_LABELS[current]}
+          {lang === "ha" ? "Mataki" : "Step"} {current + 1}{" "}
+          {lang === "ha" ? "cikin" : "of"} {labels.length}: {labels[current]}
         </p>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
           <div
             className="h-full rounded-full bg-forest transition-all"
-            style={{ width: `${((current + 1) / STEP_LABELS.length) * 100}%` }}
+            style={{ width: `${((current + 1) / labels.length) * 100}%` }}
           />
         </div>
       </div>

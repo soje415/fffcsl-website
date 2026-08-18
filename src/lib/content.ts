@@ -15,11 +15,12 @@ import {
 
 export const STRUCTURE_LEVELS = [
   "National Headquarters",
-  "State Structures",
-  "Local Government Area (LGA) Structures",
-  "Community / Ward Structures",
-  "Farmer Clusters & Cooperative Groups",
-  "Individual Farmers",
+  "6 Geopolitical Zonal Offices",
+  "State Chapters",
+  "Local Government Area (LGA) Chapters",
+  "Community / Ward Units",
+  "Farmer Clusters / Primary Cooperatives",
+  "Individual Members",
 ];
 
 export type WhatWeDoItem = {

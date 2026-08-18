@@ -1,0 +1,172 @@
+const DEFAULT_BASE_URL = "https://api.hyparrow.cloud/api/v1";
+
+function config() {
+  const apiKey = process.env.HYPARROW_API_KEY;
+  const apiSecret = process.env.HYPARROW_API_SECRET;
+  if (!apiKey || !apiSecret) {
+    throw new Error(
+      "Hyparrow credentials are not configured (set HYPARROW_API_KEY and HYPARROW_API_SECRET)."
+    );
+  }
+  return {
+    baseUrl: process.env.HYPARROW_BASE_URL ?? DEFAULT_BASE_URL,
+    headers: {
+      "X-API-Key": apiKey,
+      "X-API-Secret": apiSecret,
+      "Content-Type": "application/json",
+    },
+  };
+}
+
+export type HyparrowError = Error & { code?: string; status?: number };
+
+async function request(path: string, body?: unknown, method: "GET" | "POST" = "POST") {
+  const { baseUrl, headers } = config();
+  const res = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  let payload: Record<string, unknown> | null = null;
+  try {
+    payload = (await res.json()) as Record<string, unknown>;
+  } catch {
+    payload = null;
+  }
+
+  if (!res.ok) {
+    const err = new Error(
+      (payload?.error as string) ?? (payload?.message as string) ?? `Hyparrow request failed (${res.status})`
+    ) as HyparrowError;
+    err.code = (payload?.code as string) ?? `HTTP_${res.status}`;
+    err.status = res.status;
+    throw err;
+  }
+
+  return payload as Record<string, unknown>;
+}
+
+export type IdentityRecord = {
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  dateOfBirth?: string;
+  gender?: string;
+};
+
+export type VerificationOutcome = {
+  status: "verified" | "mismatch";
+  matchedName?: string;
+  reason?: string;
+};
+
+function extractIdentity(payload: Record<string, unknown> | null): IdentityRecord | undefined {
+  // Hyparrow forwards the verification network's envelope as `data`, with the
+  // actual record nested one level deeper at `data.data` (see the KYC docs).
+  const envelope = payload?.data as Record<string, unknown> | undefined;
+  const record = (envelope?.data as Record<string, unknown> | undefined) ?? envelope;
+  if (!record || typeof record !== "object") return undefined;
+  return {
+    firstName: record.firstName as string | undefined,
+    lastName: record.lastName as string | undefined,
+    middleName: record.middleName as string | undefined,
+    dateOfBirth: record.dateOfBirth as string | undefined,
+    gender: record.gender as string | undefined,
+  };
+}
+
+function normalize(value?: string) {
+  return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function matchName(
+  record: IdentityRecord | undefined,
+  firstName: string,
+  lastName: string
+): VerificationOutcome {
+  if (!record) {
+    return { status: "mismatch", reason: "No identity record was returned for that number." };
+  }
+  const matchedName = [record.firstName, record.middleName, record.lastName]
+    .filter(Boolean)
+    .join(" ");
+  if (normalize(record.firstName) === normalize(firstName) && normalize(record.lastName) === normalize(lastName)) {
+    return { status: "verified", matchedName };
+  }
+  return { status: "mismatch", matchedName };
+}
+
+export async function verifyIdentity(input: {
+  type: "bvn" | "nin";
+  identifier: string;
+  firstName: string;
+  lastName: string;
+}): Promise<VerificationOutcome> {
+  const path = input.type === "bvn" ? "/kyc/identity/bvn/basic" : "/kyc/identity/nin";
+  const body = input.type === "bvn" ? { bvn: input.identifier } : { nin: input.identifier };
+  const payload = await request(path, body);
+  return matchName(extractIdentity(payload), input.firstName, input.lastName);
+}
+
+export type VirtualAccount = {
+  accountNumber: string;
+  accountName: string;
+  bankName: string;
+  customerId: string;
+  reference: string;
+};
+
+export async function createVirtualAccount(input: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  dateOfBirth?: string;
+  address?: string;
+}): Promise<VirtualAccount> {
+  const customerPayload = await request("/customers", {
+    firstName: input.firstName,
+    lastName: input.lastName,
+    email: input.email,
+    phoneNumber: input.phoneNumber,
+    dateOfBirth: input.dateOfBirth || undefined,
+    address: input.address || undefined,
+  });
+
+  const customer = (customerPayload?.data ?? {}) as Record<string, unknown>;
+  const customerId = customer.id as string | undefined;
+  if (!customerId) {
+    throw new Error("Hyparrow did not return a customer id when creating the customer.");
+  }
+
+  const bankCode = process.env.HYPARROW_VA_BANK_CODE ?? "035";
+  const vaPayload = await request("/customers/virtual-account/custom", {
+    customerId,
+    bankCode,
+    prefix: "FFFCSL",
+  });
+  const account = (vaPayload?.data ?? {}) as Record<string, unknown>;
+
+  return {
+    accountNumber: (account.accountNumber as string) ?? "",
+    accountName: (account.accountName as string) ?? "",
+    bankName: (account.bankName as string) ?? "",
+    customerId,
+    reference: customerId,
+  };
+}
+
+export async function checkVirtualAccountPaid(customerId: string, amountKobo: number): Promise<boolean> {
+  const payload = await request(
+    `/transactions?type=virtual_account&status=completed&limit=20`,
+    undefined,
+    "GET"
+  );
+  const list = (payload?.data as Array<Record<string, unknown>>) ?? [];
+  return list.some((tx) => {
+    if (tx.customerId !== customerId) return false;
+    const amount = Number(tx.amount ?? 0);
+    return amount >= amountKobo;
+  });
+}

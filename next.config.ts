@@ -1,13 +1,14 @@
 import path from "path";
 import type { NextConfig } from "next";
 
-// Set by the GitHub Pages workflow to "/<repo-name>" since project pages are
-// served from a subpath (username.github.io/repo-name). Empty for local dev
-// and for any future host that serves the app from the domain root.
+// GitHub Pages (static) sets NEXT_STATIC_EXPORT=1 and NEXT_BASE_PATH to the
+// repo subpath. Everywhere else (local dev, Vercel) the app builds serverful
+// so the /api/hyparrow route handlers can proxy Hyparrow server-to-server.
+const staticExport = process.env.NEXT_STATIC_EXPORT === "1";
 const basePath = process.env.NEXT_BASE_PATH ?? "";
 
 const nextConfig: NextConfig = {
-  output: "export",
+  output: staticExport ? "export" : undefined,
   basePath,
   images: {
     unoptimized: true,

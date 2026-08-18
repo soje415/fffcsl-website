@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Container } from "@/components/ui/container";
 import { Stepper } from "@/components/registration/stepper";
+import { LanguageProvider, useLanguage } from "@/components/registration/language";
+import { LanguageToggle } from "@/components/registration/language-toggle";
 import { PersonalStep } from "@/components/registration/steps/personal-step";
 import { AddressFarmStep } from "@/components/registration/steps/address-farm-step";
 import { NextOfKinStep } from "@/components/registration/steps/next-of-kin-step";
@@ -21,10 +23,30 @@ function readDraft(): WizardState {
   const saved = window.localStorage.getItem(STORAGE_KEY);
   if (!saved) return { step: 0, data: EMPTY_REGISTRATION };
   try {
-    return JSON.parse(saved) as WizardState;
+    const parsed = JSON.parse(saved) as Partial<WizardState>;
+    return {
+      step: typeof parsed.step === "number" ? parsed.step : 0,
+      data: { ...EMPTY_REGISTRATION, ...(parsed.data ?? {}) },
+    };
   } catch {
     return { step: 0, data: EMPTY_REGISTRATION };
   }
+}
+
+function WizardHeader({ onStartNew }: { onStartNew: () => void }) {
+  const { t } = useLanguage();
+  return (
+    <div className="mb-4 flex items-center justify-between">
+      <LanguageToggle />
+      <button
+        type="button"
+        onClick={onStartNew}
+        className="text-xs font-medium text-ink-soft underline underline-offset-2 hover:text-forest-dark"
+      >
+        {t("Start Over", "Fara sabo")}
+      </button>
+    </div>
+  );
 }
 
 export function RegistrationWizard() {
@@ -88,36 +110,30 @@ export function RegistrationWizard() {
   ];
 
   return (
-    <section className="py-12 sm:py-16">
-      <Container className="max-w-3xl">
-        {step < 6 && (
-          <div className="mb-10">
-            <div className="mb-4 flex justify-end">
-              <button
-                type="button"
-                onClick={startNew}
-                className="text-xs font-medium text-ink-soft underline underline-offset-2 hover:text-forest-dark"
-              >
-                Start Over
-              </button>
+    <LanguageProvider>
+      <section className="py-12 sm:py-16">
+        <Container className="max-w-3xl">
+          {step < 6 && (
+            <div className="mb-10">
+              <WizardHeader onStartNew={startNew} />
+              <Stepper current={step} />
             </div>
-            <Stepper current={step} />
+          )}
+          <div className="rounded-2xl border border-line bg-white p-6 sm:p-9">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {steps[step]}
+              </motion.div>
+            </AnimatePresence>
           </div>
-        )}
-        <div className="rounded-2xl border border-line bg-white p-6 sm:p-9">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -16 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {steps[step]}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </Container>
-    </section>
+        </Container>
+      </section>
+    </LanguageProvider>
   );
 }

@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, FlaskConical, Loader2 } from "lucide-react";
+import { Copy, Check, Loader2, Banknote } from "lucide-react";
 import { StepNav } from "@/components/registration/step-nav";
-import { mockVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
+import { useLanguage } from "@/components/registration/language";
+import { hyparrowVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
 import type { RegistrationData } from "@/types/registration";
 
 const FEE = 3000;
@@ -20,31 +21,68 @@ export function PaymentStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const { t } = useLanguage();
   const [generating, setGenerating] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
   async function generateAccount() {
+    setError("");
     setGenerating(true);
-    const account = await mockVirtualAccountProvider.createAccount({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      phone: data.phone,
-      email: data.email,
-      amount: FEE,
-    });
-    update({
-      virtualAccountNumber: account.accountNumber,
-      virtualAccountBank: account.bankName,
-    });
-    setGenerating(false);
+    try {
+      const account = await hyparrowVirtualAccountProvider.createAccount({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        email: data.email,
+        dateOfBirth: data.dob,
+        address: data.residentialAddress,
+        amount: FEE,
+      });
+      update({
+        virtualAccountNumber: account.accountNumber,
+        virtualAccountBank: account.bankName,
+        virtualAccountCustomerId: account.customerId,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("Could not generate a payment account.", "Ba a iya samar da asusun biyan kuɗi ba.")
+      );
+    } finally {
+      setGenerating(false);
+    }
   }
 
-  async function simulatePayment() {
+  async function checkPayment() {
+    setError("");
     setConfirming(true);
-    await mockVirtualAccountProvider.checkStatus(data.virtualAccountNumber);
-    update({ paymentStatus: "paid" });
-    setConfirming(false);
+    try {
+      const status = await hyparrowVirtualAccountProvider.checkStatus(
+        data.virtualAccountCustomerId,
+        FEE
+      );
+      if (status === "paid") {
+        update({ paymentStatus: "paid" });
+      } else {
+        setError(
+          t(
+            "We haven't received your payment yet. Try again in a moment.",
+            "Ba mu karɓi biyan kuɗinka ba tukuna. Ka sake gwadawa nan gaba."
+          )
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("Could not confirm payment.", "Ba a iya tabbatar da biyan kuɗi ba.")
+      );
+    } finally {
+      setConfirming(false);
+    }
   }
 
   function copyAccount() {
@@ -55,15 +93,24 @@ export function PaymentStep({
 
   return (
     <div>
-      <div className="flex items-start gap-2 rounded-xl border border-amber/40 bg-amber/10 p-4 text-sm text-walnut-dark">
-        <FlaskConical size={18} className="mt-0.5 shrink-0" />
+      <div className="flex items-start gap-2 rounded-xl border border-forest/30 bg-forest/5 p-4 text-sm text-forest-dark">
+        <Banknote size={18} className="mt-0.5 shrink-0" />
         <p>
-          <strong>Test Mode.</strong> This is a preview of the payment flow.
-          No real bank account is generated and no money is collected here —
-          it will connect to Hyparrow&apos;s live virtual account API once
-          credentials are added.
+          <strong>{t("Live payment.", "Biya ta gaskiya.")}</strong>{" "}
+          {t(
+            "A dedicated FFFCSL virtual account is created for you via Hyparrow. Transfer exactly",
+            "Ana samar maka asusun FFFCSL na musamman ta Hyparrow. Aika daidai"
+          )}{" "}
+          <strong>₦{FEE.toLocaleString()}</strong>{" "}
+          {t("to it, then confirm below.", "zuwa gare shi, sannan ka tabbatar a ƙasa.")}
         </p>
       </div>
+
+      {error && (
+        <p className="mt-4 rounded-lg border border-terracotta/40 bg-terracotta/10 p-3 text-sm text-terracotta-dark">
+          {error}
+        </p>
+      )}
 
       <div className="mt-6">
         {!data.virtualAccountNumber ? (
@@ -74,7 +121,9 @@ export function PaymentStep({
             className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
           >
             {generating && <Loader2 size={16} className="animate-spin" />}
-            {generating ? "Generating account..." : "Generate Payment Account"}
+            {generating
+              ? t("Creating your account...", "Ana ƙirƙirar asusunka...")
+              : t("Generate Payment Account", "Samar da Asusun Biyan Kuɗi")}
           </button>
         ) : (
           <AnimatePresence mode="wait">
@@ -87,9 +136,14 @@ export function PaymentStep({
               >
                 <Check size={22} />
                 <div>
-                  <p className="font-semibold">Payment Confirmed</p>
+                  <p className="font-semibold">
+                    {t("Payment Confirmed", "An Tabbatar da Biya")}
+                  </p>
                   <p className="text-sm text-ink-soft">
-                    Your ₦{FEE.toLocaleString()} ID card fee has been received.
+                    {t(
+                      `Your ₦${FEE.toLocaleString()} ID card fee has been received.`,
+                      `An karɓi kuɗin katin shaida na ₦${FEE.toLocaleString()}.`
+                    )}
                   </p>
                 </div>
               </motion.div>
@@ -101,18 +155,20 @@ export function PaymentStep({
                 className="rounded-xl border border-line bg-white p-6"
               >
                 <p className="text-xs font-semibold uppercase tracking-wide text-terracotta">
-                  Pay Exactly
+                  {t("Pay Exactly", "Biya daidai")}
                 </p>
                 <p className="mt-1 font-serif text-3xl font-semibold text-forest-dark">
                   ₦{FEE.toLocaleString()}
                 </p>
                 <div className="mt-5 space-y-3 text-sm">
                   <div className="flex items-center justify-between border-b border-line pb-3">
-                    <span className="text-ink-soft">Bank</span>
+                    <span className="text-ink-soft">{t("Bank", "Banki")}</span>
                     <span className="font-medium text-ink">{data.virtualAccountBank}</span>
                   </div>
                   <div className="flex items-center justify-between border-b border-line pb-3">
-                    <span className="text-ink-soft">Account Number</span>
+                    <span className="text-ink-soft">
+                      {t("Account Number", "Lambar asusu")}
+                    </span>
                     <button
                       type="button"
                       onClick={copyAccount}
@@ -123,21 +179,25 @@ export function PaymentStep({
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-ink-soft">Account Name</span>
+                    <span className="text-ink-soft">{t("Account Name", "Sunan asusu")}</span>
                     <span className="text-right font-medium text-ink">
-                      {data.virtualAccountBank ? `FFFCSL / ${data.firstName} ${data.lastName}`.toUpperCase() : ""}
+                      {data.virtualAccountBank
+                        ? `FFFCSL / ${data.firstName} ${data.lastName}`.toUpperCase()
+                        : ""}
                     </span>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  onClick={simulatePayment}
+                  onClick={checkPayment}
                   disabled={confirming}
                   className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-semibold text-ink transition-colors hover:brightness-95 disabled:opacity-60"
                 >
                   {confirming && <Loader2 size={16} className="animate-spin" />}
-                  {confirming ? "Checking for payment..." : "Simulate Payment Received (Test)"}
+                  {confirming
+                    ? t("Checking for payment...", "Ana duba biyan kuɗi...")
+                    : t("I've Paid — Confirm Payment", "Na biya — Tabbatar da biyan kuɗi")}
                 </button>
               </motion.div>
             )}

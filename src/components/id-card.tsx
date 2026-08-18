@@ -75,7 +75,7 @@ export function IdCard({ data }: { data: RegistrationData }) {
                 {data.state} &middot; {data.lga}
               </span>
               <span className="text-cream/50">Commodity</span>
-              <span className="truncate">{data.primaryCrop || "—"}</span>
+              <span className="truncate">{data.crops.join(", ") || "—"}</span>
               <span className="text-cream/50">Member Since</span>
               <span>{memberSince}</span>
             </div>

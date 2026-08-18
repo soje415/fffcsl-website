@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { FieldWrap, TextInput, SelectInput } from "@/components/registration/field";
 import { StepNav } from "@/components/registration/step-nav";
+import { useLanguage } from "@/components/registration/language";
 import { NG_STATES, getLgas } from "@/lib/ng-locations";
 import type { RegistrationData } from "@/types/registration";
 
@@ -10,12 +11,36 @@ const CROPS = [
   "Rice",
   "Maize",
   "Wheat",
-  "Vegetables",
-  "Legumes (Beans/Cowpea)",
   "Cassava",
   "Yam",
+  "Sweet Potato",
+  "Irish Potato",
+  "Cocoyam",
   "Sorghum",
   "Millet",
+  "Cowpea (Beans)",
+  "Soybean",
+  "Groundnut",
+  "Sesame (Beniseed)",
+  "Melon (Egusi)",
+  "Tomato",
+  "Pepper",
+  "Onion",
+  "Okra",
+  "Garden Egg",
+  "Vegetables (Leafy)",
+  "Plantain",
+  "Banana",
+  "Cocoa",
+  "Oil Palm",
+  "Cashew",
+  "Sugarcane",
+  "Cotton",
+  "Ginger",
+  "Kolanut",
+  "Mango",
+  "Citrus (Orange/Lime)",
+  "Pineapple",
   "Other",
 ];
 
@@ -30,17 +55,31 @@ export function AddressFarmStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const { t } = useLanguage();
+  const [cropError, setCropError] = useState("");
   const lgas = useMemo(() => (data.state ? getLgas(data.state) : []), [data.state]);
+
+  function toggleCrop(crop: string) {
+    setCropError("");
+    const next = data.crops.includes(crop)
+      ? data.crops.filter((c) => c !== crop)
+      : [...data.crops, crop];
+    update({ crops: next });
+  }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (data.crops.length === 0) {
+      setCropError(t("Select at least one primary crop.", "Zaɓi aƙalla amfanin gona guda."));
+      return;
+    }
     onNext();
   }
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <FieldWrap label="Residential Address" className="sm:col-span-2">
+        <FieldWrap label="Residential Address" hausa="Adireshin gida" className="sm:col-span-2">
           <textarea
             required
             rows={3}
@@ -49,14 +88,14 @@ export function AddressFarmStep({
             className="w-full resize-none rounded-lg border border-line bg-cream px-4 py-2.5 text-sm text-ink outline-none transition-colors focus:border-forest"
           />
         </FieldWrap>
-        <FieldWrap label="State">
+        <FieldWrap label="State" hausa="Jiha">
           <SelectInput
             required
             value={data.state}
             onChange={(e) => update({ state: e.target.value, lga: "" })}
           >
             <option value="" disabled>
-              Select state
+              {t("Select state", "Zaɓi jiha")}
             </option>
             {NG_STATES.map((s) => (
               <option key={s} value={s}>
@@ -65,7 +104,7 @@ export function AddressFarmStep({
             ))}
           </SelectInput>
         </FieldWrap>
-        <FieldWrap label="Local Government Area">
+        <FieldWrap label="Local Government Area" hausa="Karamar hukuma">
           <SelectInput
             required
             disabled={!data.state}
@@ -73,7 +112,9 @@ export function AddressFarmStep({
             onChange={(e) => update({ lga: e.target.value })}
           >
             <option value="" disabled>
-              {data.state ? "Select LGA" : "Select a state first"}
+              {data.state
+                ? t("Select LGA", "Zaɓi karamar hukuma")
+                : t("Select a state first", "Fara zaɓi jiha")}
             </option>
             {lgas.map((l) => (
               <option key={l} value={l}>
@@ -82,35 +123,66 @@ export function AddressFarmStep({
             ))}
           </SelectInput>
         </FieldWrap>
-        <FieldWrap label="Community / Ward" hint="Optional">
+        <FieldWrap label="Community / Ward" hausa="Unguwa">
           <TextInput
+            required
             value={data.community}
             onChange={(e) => update({ community: e.target.value })}
           />
         </FieldWrap>
-        <FieldWrap label="Farmer Cluster / Cooperative Group" hint="Optional">
+        <FieldWrap
+          label="Farmer Cluster"
+          hausa="Rukunin manoma"
+          hint={t("Optional", "Ba dole ba")}
+        >
           <TextInput
             value={data.cluster}
             onChange={(e) => update({ cluster: e.target.value })}
           />
         </FieldWrap>
-        <FieldWrap label="Primary Crop">
-          <SelectInput
-            required
-            value={data.primaryCrop}
-            onChange={(e) => update({ primaryCrop: e.target.value })}
-          >
-            <option value="" disabled>
-              Select primary crop
-            </option>
-            {CROPS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </SelectInput>
+
+        <FieldWrap label="Primary Crop(s)" hausa="Amfanin gona" className="sm:col-span-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {CROPS.map((crop) => {
+              const selected = data.crops.includes(crop);
+              return (
+                <button
+                  key={crop}
+                  type="button"
+                  onClick={() => toggleCrop(crop)}
+                  aria-pressed={selected}
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                    selected
+                      ? "border-forest bg-forest/10 text-forest-dark"
+                      : "border-line bg-cream text-ink-soft hover:border-forest/40"
+                  }`}
+                >
+                  <span
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                      selected ? "border-forest bg-forest text-cream" : "border-line bg-white"
+                    }`}
+                  >
+                    {selected && (
+                      <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none">
+                        <path d="M2 6l3 3 5-6" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    )}
+                  </span>
+                  {crop === "Other" ? t("Other", "Sauran") : crop}
+                </button>
+              );
+            })}
+          </div>
+          {cropError ? (
+            <span className="text-xs text-terracotta-dark">{cropError}</span>
+          ) : (
+            <span className="text-xs text-ink-soft/70">
+              {t("Select all that apply.", "Zaɓi duk waɗanda suka dace.")}
+            </span>
+          )}
         </FieldWrap>
-        <FieldWrap label="Farm Size (Hectares)">
+
+        <FieldWrap label="Farm Size (Hectares)" hausa="Girman gona (Hectare)">
           <TextInput
             required
             type="number"
@@ -120,7 +192,7 @@ export function AddressFarmStep({
             onChange={(e) => update({ farmSizeHectares: e.target.value })}
           />
         </FieldWrap>
-        <FieldWrap label="Years Farming">
+        <FieldWrap label="Years Farming" hausa="Shekarun noma">
           <TextInput
             required
             type="number"

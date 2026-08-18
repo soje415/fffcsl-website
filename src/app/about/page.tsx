@@ -3,7 +3,7 @@ import { CheckCircle2 } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { Reveal, RevealGroup } from "@/components/ui/reveal";
-import { StructureDiagram } from "@/components/structure-diagram";
+import { OrgChart } from "@/components/org-chart";
 import { CORE_OBJECTIVES } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -92,7 +92,7 @@ export default function AboutPage() {
             </p>
           </Reveal>
           <div className="mt-12">
-            <StructureDiagram />
+            <OrgChart />
           </div>
         </Container>
       </section>
