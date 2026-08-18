@@ -1,13 +1,8 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { ensureSchema, sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const HANDLED_EVENTS = [
-  "customer.transaction.completed",
-  "subscription.payment.completed",
-  "checkout.payment.completed",
-];
 
 export async function POST(req: Request) {
   const raw = await req.text();
@@ -33,12 +28,18 @@ export async function POST(req: Request) {
     return Response.json({ success: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Acknowledge payment events. Without a persistent datastore there is no
-  // server-side record to update, so confirmation is driven client-side by
-  // polling /api/hyparrow/virtual-account/status. When a database is added,
-  // mark the customerId (event.data.customerId) as paid here.
-  if (HANDLED_EVENTS.includes(event.event ?? "")) {
-    console.log("[hyparrow-webhook]", event.event, event.data?.customerId);
+  const customerId = event.data?.customerId as string | undefined;
+  if (customerId && event.event === "customer.transaction.completed") {
+    try {
+      await ensureSchema();
+      await sql()`
+        UPDATE payments
+        SET status = 'paid', paid_at = COALESCE(paid_at, now())
+        WHERE customer_id = ${customerId}
+      `;
+    } catch (err) {
+      console.error("[hyparrow-webhook] failed to mark paid", err);
+    }
   }
 
   return Response.json({ success: true });

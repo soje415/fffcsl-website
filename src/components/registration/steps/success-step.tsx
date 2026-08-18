@@ -7,6 +7,7 @@ import { PartyPopper, Printer, UserPlus } from "lucide-react";
 import { IdCard } from "@/components/id-card";
 import { useLanguage } from "@/components/registration/language";
 import { otpProvider } from "@/lib/providers/otp-provider";
+import { submitRegistration } from "@/lib/providers/registration-provider";
 import type { RegistrationData } from "@/types/registration";
 
 export function SuccessStep({
@@ -22,8 +23,16 @@ export function SuccessStep({
   const sentRef = useRef(false);
 
   useEffect(() => {
-    if (sentRef.current || data.welcomeSmsSent || !data.phone) return;
+    if (sentRef.current) return;
     sentRef.current = true;
+
+    // Persist the completed registration (idempotent on member_id).
+    submitRegistration(data).catch(() => {
+      /* do not block the success screen if persistence fails */
+    });
+
+    // Fire the welcome SMS once.
+    if (data.welcomeSmsSent || !data.phone) return;
     const message =
       lang === "ha"
         ? `Barka ${data.firstName}, rajistar FFFCSL ɗinka ta cika. ID na memba: ${data.memberId}. Ka kiyaye wannan ID.`
