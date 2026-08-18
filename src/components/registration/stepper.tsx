@@ -5,6 +5,7 @@ import { useLanguage } from "@/components/registration/language";
 
 const HAUSA_STEP_LABELS = [
   "Bayanan kai",
+  "Tabbatar da waya",
   "Adireshi da gona",
   "Mai kula da kai",
   "Yarjejeniya",

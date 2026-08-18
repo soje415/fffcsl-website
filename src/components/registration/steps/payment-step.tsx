@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Check, Loader2, Banknote } from "lucide-react";
 import { StepNav } from "@/components/registration/step-nav";
@@ -23,9 +23,10 @@ export function PaymentStep({
 }) {
   const { t } = useLanguage();
   const [generating, setGenerating] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const pollingRef = useRef(false);
 
   async function generateAccount() {
     setError("");
@@ -56,9 +57,10 @@ export function PaymentStep({
     }
   }
 
-  async function checkPayment() {
-    setError("");
-    setConfirming(true);
+  async function checkPayment(silent: boolean) {
+    if (pollingRef.current) return;
+    pollingRef.current = true;
+    if (!silent) setChecking(true);
     try {
       const status = await hyparrowVirtualAccountProvider.checkStatus(
         data.virtualAccountCustomerId,
@@ -66,7 +68,7 @@ export function PaymentStep({
       );
       if (status === "paid") {
         update({ paymentStatus: "paid" });
-      } else {
+      } else if (!silent) {
         setError(
           t(
             "We haven't received your payment yet. Try again in a moment.",
@@ -74,16 +76,23 @@ export function PaymentStep({
           )
         );
       }
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t("Could not confirm payment.", "Ba a iya tabbatar da biyan kuɗi ba.")
-      );
+    } catch {
+      if (!silent) {
+        setError(t("Could not confirm payment.", "Ba a iya tabbatar da biyan kuɗi ba."));
+      }
     } finally {
-      setConfirming(false);
+      pollingRef.current = false;
+      if (!silent) setChecking(false);
     }
   }
+
+  // Auto-poll for the transfer once the account exists, until it is marked paid.
+  useEffect(() => {
+    if (!data.virtualAccountNumber || data.paymentStatus === "paid") return;
+    const id = setInterval(() => checkPayment(true), 5000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.virtualAccountNumber, data.paymentStatus, data.virtualAccountCustomerId]);
 
   function copyAccount() {
     navigator.clipboard.writeText(data.virtualAccountNumber);
@@ -102,7 +111,10 @@ export function PaymentStep({
             "Ana samar maka asusun FFFCSL na musamman ta Hyparrow. Aika daidai"
           )}{" "}
           <strong>₦{FEE.toLocaleString()}</strong>{" "}
-          {t("to it, then confirm below.", "zuwa gare shi, sannan ka tabbatar a ƙasa.")}
+          {t(
+            "to it — this page will confirm automatically once it arrives.",
+            "zuwa gare shi — shafin zai tabbatar da kansa da zarar ya iso."
+          )}
         </p>
       </div>
 
@@ -188,16 +200,25 @@ export function PaymentStep({
                   </div>
                 </div>
 
+                <div className="mt-6 flex items-center gap-3 rounded-lg bg-cream-soft p-4">
+                  <Loader2 size={18} className="animate-spin text-forest" />
+                  <p className="text-sm text-ink-soft">
+                    {t(
+                      "Waiting for your transfer — checking automatically…",
+                      "Ana jiran tura kuɗin ka — ana dubawa ta atomatik…"
+                    )}
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={checkPayment}
-                  disabled={confirming}
-                  className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-semibold text-ink transition-colors hover:brightness-95 disabled:opacity-60"
+                  onClick={() => checkPayment(false)}
+                  disabled={checking}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-semibold text-ink transition-colors hover:brightness-95 disabled:opacity-60"
                 >
-                  {confirming && <Loader2 size={16} className="animate-spin" />}
-                  {confirming
-                    ? t("Checking for payment...", "Ana duba biyan kuɗi...")
-                    : t("I've Paid — Confirm Payment", "Na biya — Tabbatar da biyan kuɗi")}
+                  {checking && <Loader2 size={16} className="animate-spin" />}
+                  {checking
+                    ? t("Checking...", "Ana dubawa...")
+                    : t("Check Now", "Duba Yanzu")}
                 </button>
               </motion.div>
             )}

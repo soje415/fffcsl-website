@@ -10,6 +10,7 @@ export type RegistrationData = {
   phone: string;
   email: string;
   photoDataUrl: string;
+  phoneVerified: boolean;
 
   residentialAddress: string;
   state: string;
@@ -49,6 +50,7 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   phone: "",
   email: "",
   photoDataUrl: "",
+  phoneVerified: false,
 
   residentialAddress: "",
   state: "",
@@ -80,6 +82,7 @@ export const EMPTY_REGISTRATION: RegistrationData = {
 
 export const STEP_LABELS = [
   "Personal Details",
+  "Phone Verification",
   "Address & Farm",
   "Next of Kin",
   "Consent",

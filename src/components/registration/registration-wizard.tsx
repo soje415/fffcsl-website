@@ -7,6 +7,7 @@ import { Stepper } from "@/components/registration/stepper";
 import { LanguageProvider, useLanguage } from "@/components/registration/language";
 import { LanguageToggle } from "@/components/registration/language-toggle";
 import { PersonalStep } from "@/components/registration/steps/personal-step";
+import { PhoneVerificationStep } from "@/components/registration/steps/phone-verification-step";
 import { AddressFarmStep } from "@/components/registration/steps/address-farm-step";
 import { NextOfKinStep } from "@/components/registration/steps/next-of-kin-step";
 import { ConsentStep } from "@/components/registration/steps/consent-step";
@@ -82,7 +83,7 @@ export function RegistrationWizard() {
   }
 
   function next() {
-    setStep((s) => Math.min(s + 1, 6));
+    setStep((s) => Math.min(s + 1, 7));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -101,12 +102,13 @@ export function RegistrationWizard() {
 
   const steps = [
     <PersonalStep key="0" data={data} update={update} onNext={next} />,
-    <AddressFarmStep key="1" data={data} update={update} onNext={next} onBack={back} />,
-    <NextOfKinStep key="2" data={data} update={update} onNext={next} onBack={back} />,
-    <ConsentStep key="3" data={data} update={update} onNext={next} onBack={back} />,
-    <PaymentStep key="4" data={data} update={update} onNext={next} onBack={back} />,
-    <VerificationStep key="5" data={data} update={update} onNext={next} onBack={back} />,
-    <SuccessStep key="6" data={data} onStartNew={startNew} />,
+    <PhoneVerificationStep key="1" data={data} update={update} onNext={next} onBack={back} />,
+    <AddressFarmStep key="2" data={data} update={update} onNext={next} onBack={back} />,
+    <NextOfKinStep key="3" data={data} update={update} onNext={next} onBack={back} />,
+    <ConsentStep key="4" data={data} update={update} onNext={next} onBack={back} />,
+    <PaymentStep key="5" data={data} update={update} onNext={next} onBack={back} />,
+    <VerificationStep key="6" data={data} update={update} onNext={next} onBack={back} />,
+    <SuccessStep key="7" data={data} onStartNew={startNew} />,
   ];
 
   return (
