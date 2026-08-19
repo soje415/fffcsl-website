@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import logoIcon from "@/assets/brand/logo-icon.jpeg";
+import { SocialLinks } from "@/components/social-links";
 
 const EXPLORE_LINKS = [
   { href: "/about", label: "About Us" },
@@ -46,6 +47,7 @@ export function SiteFooter() {
               Federal Ministry of Agriculture and Food Security, Nigeria &mdash;
               organizing and empowering farmers across all 36 states and the FCT.
             </p>
+            <SocialLinks className="mt-5" />
           </div>
 
           <div>
