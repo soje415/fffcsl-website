@@ -53,13 +53,20 @@ export type IdentityRecord = {
   middleName?: string;
   dateOfBirth?: string;
   gender?: string;
+  photo?: string;
 };
 
 export type VerificationOutcome = {
-  status: "verified" | "mismatch";
-  matchedName?: string;
+  status: "verified" | "not_found";
+  record?: IdentityRecord;
   reason?: string;
 };
+
+function asDataUrl(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value) return undefined;
+  if (value.startsWith("data:") || value.startsWith("http")) return value;
+  return `data:image/jpeg;base64,${value}`;
+}
 
 function extractIdentity(payload: Record<string, unknown> | null): IdentityRecord | undefined {
   // Hyparrow forwards the verification network's envelope as `data`, with the
@@ -73,40 +80,27 @@ function extractIdentity(payload: Record<string, unknown> | null): IdentityRecor
     middleName: record.middleName as string | undefined,
     dateOfBirth: record.dateOfBirth as string | undefined,
     gender: record.gender as string | undefined,
+    photo: asDataUrl(record.photo ?? record.photograph ?? record.image ?? record.base64Image),
   };
 }
 
-function normalize(value?: string) {
-  return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-export function matchName(
-  record: IdentityRecord | undefined,
-  firstName: string,
-  lastName: string
-): VerificationOutcome {
-  if (!record) {
-    return { status: "mismatch", reason: "No identity record was returned for that number." };
-  }
-  const matchedName = [record.firstName, record.middleName, record.lastName]
-    .filter(Boolean)
-    .join(" ");
-  if (normalize(record.firstName) === normalize(firstName) && normalize(record.lastName) === normalize(lastName)) {
-    return { status: "verified", matchedName };
-  }
-  return { status: "mismatch", matchedName };
-}
-
+/**
+ * Looks up a BVN/NIN record via Hyparrow and returns whatever the registry
+ * has on file — the caller uses this to auto-fill the registration form
+ * rather than matching it against user-typed details.
+ */
 export async function verifyIdentity(input: {
   type: "bvn" | "nin";
   identifier: string;
-  firstName: string;
-  lastName: string;
 }): Promise<VerificationOutcome> {
   const path = input.type === "bvn" ? "/kyc/identity/bvn/basic" : "/kyc/identity/nin";
   const body = input.type === "bvn" ? { bvn: input.identifier } : { nin: input.identifier };
   const payload = await request(path, body);
-  return matchName(extractIdentity(payload), input.firstName, input.lastName);
+  const record = extractIdentity(payload);
+  if (!record || !(record.firstName || record.lastName)) {
+    return { status: "not_found", reason: "No identity record was returned for that number." };
+  }
+  return { status: "verified", record };
 }
 
 export type VirtualAccount = {

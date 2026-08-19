@@ -101,13 +101,13 @@ export function RegistrationWizard() {
   if (!hydrated) return null;
 
   const steps = [
-    <PersonalStep key="0" data={data} update={update} onNext={next} />,
-    <PhoneVerificationStep key="1" data={data} update={update} onNext={next} onBack={back} />,
-    <AddressFarmStep key="2" data={data} update={update} onNext={next} onBack={back} />,
-    <NextOfKinStep key="3" data={data} update={update} onNext={next} onBack={back} />,
-    <ConsentStep key="4" data={data} update={update} onNext={next} onBack={back} />,
-    <PaymentStep key="5" data={data} update={update} onNext={next} onBack={back} />,
-    <VerificationStep key="6" data={data} update={update} onNext={next} onBack={back} />,
+    <VerificationStep key="0" data={data} update={update} onNext={next} />,
+    <PersonalStep key="1" data={data} update={update} onNext={next} onBack={back} />,
+    <PhoneVerificationStep key="2" data={data} update={update} onNext={next} onBack={back} />,
+    <AddressFarmStep key="3" data={data} update={update} onNext={next} onBack={back} />,
+    <NextOfKinStep key="4" data={data} update={update} onNext={next} onBack={back} />,
+    <ConsentStep key="5" data={data} update={update} onNext={next} onBack={back} />,
+    <PaymentStep key="6" data={data} update={update} onNext={next} onBack={back} />,
     <SuccessStep key="7" data={data} update={update} onStartNew={startNew} />,
   ];
 
@@ -115,7 +115,7 @@ export function RegistrationWizard() {
     <LanguageProvider>
       <section className="py-12 sm:py-16">
         <Container className="max-w-3xl">
-          {step < 6 && (
+          {step < steps.length - 1 && (
             <div className="mb-10">
               <WizardHeader onStartNew={startNew} />
               <Stepper current={step} />

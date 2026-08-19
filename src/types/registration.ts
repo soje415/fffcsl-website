@@ -10,6 +10,7 @@ export type RegistrationData = {
   phone: string;
   email: string;
   photoDataUrl: string;
+  photoSource: "" | "kyc" | "upload";
   phoneVerified: boolean;
 
   residentialAddress: string;
@@ -53,6 +54,7 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   phone: "",
   email: "",
   photoDataUrl: "",
+  photoSource: "",
   phoneVerified: false,
 
   residentialAddress: "",
@@ -87,12 +89,12 @@ export const EMPTY_REGISTRATION: RegistrationData = {
 };
 
 export const STEP_LABELS = [
+  "Identity Verification",
   "Personal Details",
   "Phone Verification",
   "Address & Farm",
   "Next of Kin",
   "Consent",
   "Payment",
-  "Identity Verification",
   "Membership ID",
 ];

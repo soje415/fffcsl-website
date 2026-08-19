@@ -13,7 +13,7 @@ export default function RegisterPage() {
       <PageHero
         eyebrow="Membership Registration"
         title="Register as an FFFCSL Farmer"
-        description="Fill in your details, pay the ₦3,000 ID card fee, verify your identity, and get your official membership ID."
+        description="Verify your identity with your BVN or NIN, fill in your details, pay the ₦3,000 ID card fee, and get your official membership ID."
       />
       <RegistrationWizard />
     </>

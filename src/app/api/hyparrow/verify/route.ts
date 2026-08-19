@@ -21,8 +21,6 @@ export async function POST(req: Request) {
     const body = (await req.json()) as {
       type?: string;
       identifier?: string;
-      firstName?: string;
-      lastName?: string;
     };
 
     const type = body.type;
@@ -39,12 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const outcome = await verifyIdentity({
-      type,
-      identifier,
-      firstName: body.firstName ?? "",
-      lastName: body.lastName ?? "",
-    });
+    const outcome = await verifyIdentity({ type, identifier });
 
     return Response.json({ success: true, ...outcome });
   } catch (err) {
@@ -52,7 +45,7 @@ export async function POST(req: Request) {
     if (e.code === "RECORD_NOT_FOUND") {
       return Response.json({
         success: true,
-        status: "mismatch",
+        status: "not_found",
         reason: "No record was found for that number. Check the number and try again.",
       });
     }

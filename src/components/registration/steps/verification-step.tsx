@@ -7,14 +7,8 @@ import { FieldWrap, TextInput, SelectInput } from "@/components/registration/fie
 import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
 import { hyparrowIdentityVerifier } from "@/lib/providers/identity-verifier";
-import { STATE_CODES } from "@/lib/ng-locations";
+import { autofillFromKyc } from "@/lib/kyc-autofill";
 import type { KycType, RegistrationData } from "@/types/registration";
-
-function generateMemberId(state: string) {
-  const code = STATE_CODES[state] ?? "NG";
-  const serial = Math.floor(100000 + Math.random() * 899999);
-  return `FFFCSL/${code}/${serial}`;
-}
 
 export function VerificationStep({
   data,
@@ -25,7 +19,7 @@ export function VerificationStep({
   data: RegistrationData;
   update: (patch: Partial<RegistrationData>) => void;
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }) {
   const { t } = useLanguage();
   const [checking, setChecking] = useState(false);
@@ -50,27 +44,20 @@ export function VerificationStep({
       const result = await hyparrowIdentityVerifier.verify({
         type: data.kycType,
         identifier: data.kycNumber,
-        firstName: data.firstName,
-        lastName: data.lastName,
       });
       if (result.status === "verified") {
         update({
           verificationStatus: "verified",
-          memberId: data.memberId || generateMemberId(data.state),
+          ...(result.record ? autofillFromKyc(result.record, data) : {}),
         });
       } else {
         update({ verificationStatus: "mismatch" });
         setReason(
           result.reason ??
-            (result.matchedName
-              ? t(
-                  `The record for that number is registered to "${result.matchedName}".`,
-                  `Bayanan wannan lambar suna kan sunan "${result.matchedName}".`
-                )
-              : t(
-                  "Your details do not match the records on file.",
-                  "Bayanan ka ba su dace da bayanan da ke rikodin ba."
-                ))
+            t(
+              "No record was found for that number. Check it and try again.",
+              "Ba a sami bayani kan wannan lambar ba. Duba ta sake gwadawa."
+            )
         );
       }
     } catch (err) {
@@ -89,10 +76,10 @@ export function VerificationStep({
       <div className="flex items-start gap-2 rounded-xl border border-forest/30 bg-forest/5 p-4 text-sm text-forest-dark">
         <ShieldCheck size={18} className="mt-0.5 shrink-0" />
         <p>
-          <strong>{t("Live identity check.", "Binciken asali na gaskiya.")}</strong>{" "}
+          <strong>{t("Start with a live identity check.", "Fara da binciken asali na gaskiya.")}</strong>{" "}
           {t(
-            "Your details are verified against the National Identity Management Commission (NIN) or your bank's BVN record via Hyparrow. Select one and run the check.",
-            "Ana tabbatar da bayanan ka da hukumar kula da asalin ƙasa (NIN) ko rikodin BVN na bankinka ta Hyparrow. Zaɓi ɗaya ka gudanar da bincike."
+            "Choose BVN or NIN and we'll look it up with the National Identity Management Commission or your bank via Hyparrow, then auto-fill your name, date of birth and gender below so you don't have to type them twice.",
+            "Zaɓi BVN ko NIN, za mu bincika tare da hukumar NIMC ko bankinka ta Hyparrow, sannan mu cika sunanka, ranar haihuwa da jinsi a ƙasa ta atomatik don kada ka rubuta su sau biyu."
           )}
         </p>
       </div>
@@ -164,10 +151,15 @@ export function VerificationStep({
                   {t("Identity Verified", "An Tabbatar da Asali")}
                 </p>
                 <p className="text-sm text-ink-soft">
-                  {t(
-                    "Your details match the records on file.",
-                    "Bayanan ka sun dace da bayanan da ke rikodin."
-                  )}
+                  {data.firstName
+                    ? t(
+                        `We found a record for ${data.firstName} ${data.lastName}. We've pre-filled what we could on the next step — just check it over.`,
+                        `Mun sami bayani game da ${data.firstName} ${data.lastName}. Mun riga mun cika abin da za mu iya a mataki na gaba — duba shi kawai.`
+                      )
+                    : t(
+                        "Your record was found. We've pre-filled what we could on the next step.",
+                        "An sami bayanan ka. Mun riga mun cika abin da za mu iya a mataki na gaba."
+                      )}
                 </p>
               </div>
             </motion.div>
@@ -184,8 +176,8 @@ export function VerificationStep({
                 <p className="text-sm">
                   {reason ||
                     t(
-                      "Your details do not match the records on file.",
-                      "Bayanan ka ba su dace da bayanan da ke rikodin ba."
+                      "No record was found for that number.",
+                      "Ba a sami bayani kan wannan lambar ba."
                     )}
                 </p>
                 <button
@@ -217,11 +209,12 @@ export function VerificationStep({
       </div>
 
       <StepNav
+        showBack={!!onBack}
         onBack={onBack}
         nextType="button"
         onNext={onNext}
         nextDisabled={data.verificationStatus !== "verified"}
-        nextLabel={t("Get My Membership ID", "Sami ID na Zama Memba")}
+        nextLabel={t("Continue to My Details", "Ci gaba zuwa Bayanana")}
       />
     </div>
   );

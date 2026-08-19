@@ -1,16 +1,20 @@
+export type IdentityRecord = {
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  photo?: string;
+};
+
 export type VerificationResult = {
-  status: "verified" | "mismatch";
-  matchedName?: string;
+  status: "verified" | "not_found";
+  record?: IdentityRecord;
   reason?: string;
 };
 
 export interface IdentityVerifier {
-  verify(input: {
-    type: "bvn" | "nin";
-    identifier: string;
-    firstName: string;
-    lastName: string;
-  }): Promise<VerificationResult>;
+  verify(input: { type: "bvn" | "nin"; identifier: string }): Promise<VerificationResult>;
 }
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
@@ -35,20 +39,23 @@ export const hyparrowIdentityVerifier: IdentityVerifier = {
     const data = await postJson<{
       success: boolean;
       status: VerificationResult["status"];
-      matchedName?: string;
+      record?: IdentityRecord;
       reason?: string;
     }>("/api/hyparrow/verify", input);
     return {
       status: data.status,
-      matchedName: data.matchedName,
+      record: data.record,
       reason: data.reason,
     };
   },
 };
 
 export const mockIdentityVerifier: IdentityVerifier = {
-  async verify({ firstName, lastName }) {
+  async verify() {
     await new Promise((r) => setTimeout(r, 900));
-    return { status: "verified", matchedName: `${firstName} ${lastName}` };
+    return {
+      status: "verified",
+      record: { firstName: "Amina", lastName: "Bello", dateOfBirth: "1990-01-01", gender: "Female" },
+    };
   },
 };

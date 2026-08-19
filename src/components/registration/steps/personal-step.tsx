@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
-import { UserRound } from "lucide-react";
+import { Sparkles, UserRound } from "lucide-react";
 import { FieldWrap, TextInput, SelectInput } from "@/components/registration/field";
 import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
@@ -12,20 +12,23 @@ export function PersonalStep({
   data,
   update,
   onNext,
+  onBack,
 }: {
   data: RegistrationData;
   update: (patch: Partial<RegistrationData>) => void;
   onNext: () => void;
+  onBack: () => void;
 }) {
   const { t } = useLanguage();
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const fromKyc = data.photoSource === "kyc";
 
   function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => update({ photoDataUrl: reader.result as string });
+    reader.onload = () => update({ photoDataUrl: reader.result as string, photoSource: "upload" });
     reader.readAsDataURL(file);
   }
 
@@ -41,6 +44,17 @@ export function PersonalStep({
 
   return (
     <form onSubmit={handleSubmit}>
+      {data.verificationStatus === "verified" && (
+        <div className="mb-5 flex items-start gap-2 rounded-xl border border-forest/30 bg-forest/5 p-4 text-sm text-forest-dark">
+          <Sparkles size={18} className="mt-0.5 shrink-0" />
+          <p>
+            {t(
+              "We've filled in what we could from your BVN/NIN record below — check it over and correct anything that's wrong.",
+              "Mun cika abin da za mu iya daga bayanan BVN/NIN ɗinka a ƙasa — duba shi ka gyara duk abin da ba daidai ba."
+            )}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div className="flex items-center gap-4 sm:col-span-2">
           <button
@@ -66,7 +80,11 @@ export function PersonalStep({
               onClick={() => fileRef.current?.click()}
               className="rounded-full border border-line bg-white px-4 py-2 text-sm font-medium text-forest-dark hover:border-forest/40"
             >
-              {t("Upload Passport Photograph", "Loda hoton fasfo")}
+              {fromKyc
+                ? t("Upload a Sharper Photo", "Loda hoto mai kyau")
+                : data.photoDataUrl
+                  ? t("Change Photo", "Canza hoto")
+                  : t("Upload Passport Photograph", "Loda hoton fasfo")}
             </button>
             <input
               ref={fileRef}
@@ -75,6 +93,14 @@ export function PersonalStep({
               onChange={handlePhoto}
               className="hidden"
             />
+            {fromKyc && (
+              <p className="mt-1.5 max-w-sm text-xs text-ink-soft">
+                {t(
+                  "This photo is from your BVN/NIN record and may be low-resolution. For a sharp, printable ID card, upload a clearer passport photograph.",
+                  "Wannan hoton daga bayanan BVN/NIN ɗinka ne kuma yana iya zama marar kyau. Don katin shaida mai kyau da za a iya bugawa, loda hoton fasfo mai kyau."
+                )}
+              </p>
+            )}
             {error && <p className="mt-1.5 text-xs text-terracotta-dark">{error}</p>}
           </div>
         </div>
@@ -159,7 +185,7 @@ export function PersonalStep({
           />
         </FieldWrap>
       </div>
-      <StepNav showBack={false} />
+      <StepNav onBack={onBack} />
     </form>
   );
 }

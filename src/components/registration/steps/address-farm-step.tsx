@@ -5,6 +5,7 @@ import { FieldWrap, TextInput, SelectInput } from "@/components/registration/fie
 import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
 import { NG_STATES, getLgas } from "@/lib/ng-locations";
+import { generateMemberId } from "@/lib/member-id";
 import type { RegistrationData } from "@/types/registration";
 
 const CROPS = [
@@ -72,6 +73,9 @@ export function AddressFarmStep({
     if (data.crops.length === 0) {
       setCropError(t("Select at least one primary crop.", "Zaɓi aƙalla amfanin gona guda."));
       return;
+    }
+    if (!data.memberId) {
+      update({ memberId: generateMemberId(data.state) });
     }
     onNext();
   }
