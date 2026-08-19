@@ -1,6 +1,7 @@
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   HeadBucketCommand,
   CreateBucketCommand,
 } from "@aws-sdk/client-s3";
@@ -59,4 +60,25 @@ export async function uploadPhoto(memberId: string, dataUrl: string): Promise<st
   );
 
   return key;
+}
+
+/**
+ * Fetch a stored passport photo back out of S3 for the public verification
+ * page. Returns null if the key is empty or the object doesn't exist.
+ */
+export async function downloadPhoto(
+  key: string
+): Promise<{ body: Uint8Array; contentType: string } | null> {
+  if (!key) return null;
+  const s3 = client();
+  try {
+    const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+    const body = await res.Body?.transformToByteArray();
+    if (!body) return null;
+    return { body, contentType: res.ContentType ?? "image/jpeg" };
+  } catch (err) {
+    const status = (err as { $metadata?: { httpStatusCode?: number } })?.$metadata?.httpStatusCode;
+    if (status === 404 || status === 403) return null;
+    throw err;
+  }
 }

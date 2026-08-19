@@ -3,19 +3,27 @@ import { QRCodeSVG } from "qrcode.react";
 import logoIcon from "@/assets/brand/logo-icon.jpeg";
 import type { RegistrationData } from "@/types/registration";
 
-export function IdCard({ data }: { data: RegistrationData }) {
+export function IdCardFront({
+  data,
+  memberSince,
+  expires,
+}: {
+  data: RegistrationData;
+  memberSince?: number;
+  expires?: Date;
+}) {
   const verifyUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/verify/${encodeURIComponent(data.memberId)}`
       : `https://fffcsl.org.ng/verify/${encodeURIComponent(data.memberId)}`;
 
-  const issued = new Date();
-  const expires = new Date(issued);
-  expires.setFullYear(expires.getFullYear() + 2);
-  const memberSince = issued.getFullYear();
+  const defaultExpires = new Date();
+  defaultExpires.setFullYear(defaultExpires.getFullYear() + 2);
+  const resolvedExpires = expires ?? defaultExpires;
+  const resolvedMemberSince = memberSince ?? new Date().getFullYear();
 
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-center">
+    <>
       {/* Front */}
       <div className="id-card relative flex aspect-[340/214] w-[min(340px,88vw)] shrink-0 flex-col overflow-hidden rounded-2xl border border-forest-dark bg-forest-dark text-cream shadow-md">
         <Image
@@ -77,7 +85,7 @@ export function IdCard({ data }: { data: RegistrationData }) {
               <span className="text-cream/50">Commodity</span>
               <span className="truncate">{data.crops.join(", ") || "—"}</span>
               <span className="text-cream/50">Member Since</span>
-              <span>{memberSince}</span>
+              <span>{resolvedMemberSince}</span>
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-center justify-between self-stretch">
@@ -87,7 +95,7 @@ export function IdCard({ data }: { data: RegistrationData }) {
             <p className="text-center text-[6px] leading-tight text-cream/60">
               Valid till
               <br />
-              {expires.toLocaleDateString()}
+              {resolvedExpires.toLocaleDateString()}
             </p>
           </div>
         </div>
@@ -101,8 +109,13 @@ export function IdCard({ data }: { data: RegistrationData }) {
           </p>
         </div>
       </div>
+    </>
+  );
+}
 
-      {/* Back */}
+function IdCardBack({ data }: { data: RegistrationData }) {
+  return (
+    <>
       <div className="id-card relative flex aspect-[340/214] w-[min(340px,88vw)] shrink-0 flex-col overflow-hidden rounded-2xl border border-forest-dark bg-forest-dark p-4 text-cream shadow-md">
         <div
           aria-hidden
@@ -165,6 +178,15 @@ export function IdCard({ data }: { data: RegistrationData }) {
           </div>
         </div>
       </div>
+    </>
+  );
+}
+
+export function IdCard({ data }: { data: RegistrationData }) {
+  return (
+    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-center">
+      <IdCardFront data={data} />
+      <IdCardBack data={data} />
     </div>
   );
 }
