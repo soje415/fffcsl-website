@@ -111,6 +111,31 @@ export type VirtualAccount = {
   reference: string;
 };
 
+function normalizePhone(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+/**
+ * Hyparrow's customer list doesn't actually filter on query params, so we
+ * pull the (small, per-client) list and match client-side. Each customer
+ * record already carries its virtual-account details once one has been
+ * issued, which lets the caller skip a redundant VA-creation call.
+ */
+async function findExistingCustomer(
+  email: string,
+  phoneNumber: string
+): Promise<Record<string, unknown> | undefined> {
+  const payload = await request("/customers?limit=500", undefined, "GET");
+  const list = (payload?.data as Array<Record<string, unknown>>) ?? [];
+  const wantEmail = email.trim().toLowerCase();
+  const wantPhone = normalizePhone(phoneNumber);
+  return list.find((c) => {
+    const cEmail = String(c.email ?? "").trim().toLowerCase();
+    const cPhone = normalizePhone(String(c.phoneNumber ?? ""));
+    return (wantEmail && cEmail === wantEmail) || (wantPhone && cPhone === wantPhone);
+  });
+}
+
 export async function createVirtualAccount(input: {
   firstName: string;
   lastName: string;
@@ -119,19 +144,44 @@ export async function createVirtualAccount(input: {
   dateOfBirth?: string;
   address?: string;
 }): Promise<VirtualAccount> {
-  const customerPayload = await request("/customers", {
-    firstName: input.firstName,
-    lastName: input.lastName,
-    email: input.email,
-    phoneNumber: input.phoneNumber,
-    dateOfBirth: input.dateOfBirth || undefined,
-    address: input.address || undefined,
-  });
+  let customerId: string | undefined;
+  let existing: Record<string, unknown> | undefined;
 
-  const customer = (customerPayload?.data ?? {}) as Record<string, unknown>;
-  const customerId = customer.id as string | undefined;
+  try {
+    const customerPayload = await request("/customers", {
+      firstName: input.firstName,
+      lastName: input.lastName,
+      email: input.email,
+      phoneNumber: input.phoneNumber,
+      dateOfBirth: input.dateOfBirth || undefined,
+      address: input.address || undefined,
+    });
+    const customer = (customerPayload?.data ?? {}) as Record<string, unknown>;
+    customerId = customer.id as string | undefined;
+  } catch (err) {
+    const e = err as HyparrowError;
+    // Hyparrow rejects creating a second customer for an email/phone it has
+    // already seen — common on retries/re-registrations. Reuse that
+    // customer (and their existing account, if any) instead of failing.
+    if (e.status === 400 && /already exists/i.test(e.message)) {
+      existing = await findExistingCustomer(input.email, input.phoneNumber);
+      customerId = existing?.id as string | undefined;
+    }
+    if (!customerId) throw err;
+  }
+
   if (!customerId) {
     throw new Error("Hyparrow did not return a customer id when creating the customer.");
+  }
+
+  if (existing?.accountNumber) {
+    return {
+      accountNumber: existing.accountNumber as string,
+      accountName: existing.accountName as string,
+      bankName: existing.bankName as string,
+      customerId,
+      reference: customerId,
+    };
   }
 
   const bankCode = process.env.HYPARROW_VA_BANK_CODE ?? "035";
