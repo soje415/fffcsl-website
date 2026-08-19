@@ -1,0 +1,16 @@
+export const USSD_BANKS = [
+  { name: "Access Bank", code: "ABP" },
+  { name: "Ecobank", code: "ECO" },
+  { name: "FCMB", code: "FCMB" },
+  { name: "Fidelity Bank", code: "FBP" },
+  { name: "First Bank", code: "FBN" },
+  { name: "Globus Bank", code: "GSB" },
+  { name: "Guaranty Trust Bank", code: "GTB" },
+  { name: "Keystone Bank", code: "KSB" },
+  { name: "Stanbic IBTC Bank", code: "IBTC" },
+  { name: "Sterling Bank", code: "SBP" },
+  { name: "Union Bank", code: "UBN" },
+  { name: "United Bank of Africa", code: "UBA" },
+  { name: "Unity Bank", code: "UBP" },
+  { name: "Zenith Bank", code: "ZIB" },
+];

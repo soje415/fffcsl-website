@@ -2,14 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, Loader2, Banknote } from "lucide-react";
+import { Copy, Check, Loader2, Banknote, Smartphone, Landmark } from "lucide-react";
 import { StepNav } from "@/components/registration/step-nav";
+import { SelectInput } from "@/components/registration/field";
 import { useLanguage } from "@/components/registration/language";
 import { hyparrowVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
+import { hyparrowCheckoutProvider } from "@/lib/providers/checkout-provider";
 import { otpProvider } from "@/lib/providers/otp-provider";
+import { USSD_BANKS } from "@/lib/ussd-banks";
 import type { RegistrationData } from "@/types/registration";
 
 const FEE = 3000;
+
+type Method = "bankTransfer" | "ussd" | "opay";
+
+const METHODS: { id: Method; label: [string, string]; icon: typeof Landmark }[] = [
+  { id: "bankTransfer", label: ["Bank Transfer", "Aika kuɗi"], icon: Landmark },
+  { id: "ussd", label: ["USSD", "USSD"], icon: Smartphone },
+  { id: "opay", label: ["Pay with OPay", "Biya da OPay"], icon: Banknote },
+];
 
 export function PaymentStep({
   data,
@@ -27,7 +38,24 @@ export function PaymentStep({
   const [checking, setChecking] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [bankCode, setBankCode] = useState(data.ussdBankCode);
   const pollingRef = useRef(false);
+
+  const method: Method = data.paymentMethod || "bankTransfer";
+
+  function sendPaymentSms() {
+    if (data.paymentSmsSent || !data.phone) return;
+    const message =
+      lang === "ha"
+        ? "An karɓi biyan kuɗi! An tabbatar da kuɗin katin shaida na N3,000 na FFFCSL. Na gode."
+        : "Payment received! Your N3,000 FFFCSL ID card fee is confirmed. Thank you.";
+    otpProvider
+      .sendSms(data.phone, message)
+      .then(() => update({ paymentSmsSent: true }))
+      .catch(() => {
+        /* SMS is best-effort; do not block confirmation */
+      });
+  }
 
   async function generateAccount() {
     setError("");
@@ -43,6 +71,7 @@ export function PaymentStep({
         amount: FEE,
       });
       update({
+        paymentMethod: "bankTransfer",
         virtualAccountNumber: account.accountNumber,
         virtualAccountBank: account.bankName,
         virtualAccountCustomerId: account.customerId,
@@ -69,18 +98,7 @@ export function PaymentStep({
       );
       if (status === "paid") {
         update({ paymentStatus: "paid" });
-        if (!data.paymentSmsSent && data.phone) {
-          const message =
-            lang === "ha"
-              ? "An karɓi biyan kuɗi! An tabbatar da kuɗin katin shaida na N3,000 na FFFCSL. Na gode."
-              : "Payment received! Your N3,000 FFFCSL ID card fee is confirmed. Thank you.";
-          otpProvider
-            .sendSms(data.phone, message)
-            .then(() => update({ paymentSmsSent: true }))
-            .catch(() => {
-              /* SMS is best-effort; do not block confirmation */
-            });
-        }
+        sendPaymentSms();
       } else if (!silent) {
         setError(
           t(
@@ -101,16 +119,116 @@ export function PaymentStep({
 
   // Auto-poll for the transfer once the account exists, until it is marked paid.
   useEffect(() => {
+    if (method !== "bankTransfer") return;
     if (!data.virtualAccountNumber || data.paymentStatus === "paid") return;
     const id = setInterval(() => checkPayment(true), 5000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.virtualAccountNumber, data.paymentStatus, data.virtualAccountCustomerId]);
+  }, [method, data.virtualAccountNumber, data.paymentStatus, data.virtualAccountCustomerId]);
+
+  async function ensureInvoice(): Promise<string> {
+    if (data.checkoutInvoiceId) return data.checkoutInvoiceId;
+    const invoiceId = await hyparrowCheckoutProvider.createInvoice({
+      amount: FEE,
+      customerName: `${data.firstName} ${data.lastName}`.trim(),
+      customerEmail: data.email,
+    });
+    update({ checkoutInvoiceId: invoiceId });
+    return invoiceId;
+  }
+
+  async function generateUssd() {
+    if (!bankCode) {
+      setError(t("Select your bank first.", "Fara zaɓi bankinka."));
+      return;
+    }
+    setError("");
+    setGenerating(true);
+    try {
+      const invoiceId = await ensureInvoice();
+      const ussdCode = await hyparrowCheckoutProvider.generateUssd(invoiceId, bankCode);
+      update({ paymentMethod: "ussd", ussdCode, ussdBankCode: bankCode });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("Could not generate a USSD code.", "Ba a iya samar da lambar USSD ba.")
+      );
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function payWithOpay() {
+    setError("");
+    setGenerating(true);
+    try {
+      const invoiceId = await ensureInvoice();
+      update({ paymentMethod: "opay" });
+      const redirectUrl = await hyparrowCheckoutProvider.initOpay(invoiceId);
+      window.location.href = redirectUrl;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("Could not start OPay checkout.", "Ba a iya fara biyan OPay ba.")
+      );
+      setGenerating(false);
+    }
+  }
+
+  async function checkCheckoutPayment(silent: boolean) {
+    if (pollingRef.current || !data.checkoutInvoiceId) return;
+    pollingRef.current = true;
+    if (!silent) setChecking(true);
+    try {
+      const paid = await hyparrowCheckoutProvider.checkStatus(data.checkoutInvoiceId);
+      if (paid) {
+        update({ paymentStatus: "paid" });
+        sendPaymentSms();
+      } else if (!silent) {
+        setError(
+          t(
+            "We haven't received your payment yet. Try again in a moment.",
+            "Ba mu karɓi biyan kuɗinka ba tukuna. Ka sake gwadawa nan gaba."
+          )
+        );
+      }
+    } catch {
+      if (!silent) {
+        setError(t("Could not confirm payment.", "Ba a iya tabbatar da biyan kuɗi ba."));
+      }
+    } finally {
+      pollingRef.current = false;
+      if (!silent) setChecking(false);
+    }
+  }
+
+  // Covers both USSD (waiting for the dial) and OPay (after the redirect back).
+  useEffect(() => {
+    if (method !== "ussd" && method !== "opay") return;
+    if (!data.checkoutInvoiceId || data.paymentStatus === "paid") return;
+    const id = setInterval(() => checkCheckoutPayment(true), 5000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [method, data.checkoutInvoiceId, data.paymentStatus]);
 
   function copyAccount() {
     navigator.clipboard.writeText(data.virtualAccountNumber);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  }
+
+  function copyUssd() {
+    navigator.clipboard.writeText(data.ussdCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  function selectMethod(m: Method) {
+    if (data.paymentStatus === "paid") return;
+    setError("");
+    update({ paymentMethod: m });
   }
 
   return (
@@ -120,15 +238,29 @@ export function PaymentStep({
         <p>
           <strong>{t("Live payment.", "Biya ta gaskiya.")}</strong>{" "}
           {t(
-            "A dedicated FFFCSL virtual account is created for you via Hyparrow. Transfer exactly",
-            "Ana samar maka asusun FFFCSL na musamman ta Hyparrow. Aika daidai"
-          )}{" "}
-          <strong>₦{FEE.toLocaleString()}</strong>{" "}
-          {t(
-            "to it — this page will confirm automatically once it arrives.",
-            "zuwa gare shi — shafin zai tabbatar da kansa da zarar ya iso."
+            "Pay your ₦3,000 FFFCSL ID card fee by bank transfer, USSD, or OPay — this page confirms automatically once it arrives.",
+            "Biya kuɗin katin shaida na FFFCSL na ₦3,000 ta hanyar aika kuɗi, USSD, ko OPay — shafin zai tabbatar da kansa da zarar ya iso."
           )}
         </p>
+      </div>
+
+      <div className="mt-5 grid grid-cols-3 gap-2">
+        {METHODS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => selectMethod(id)}
+            disabled={data.paymentStatus === "paid"}
+            className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+              method === id
+                ? "border-forest bg-forest/10 text-forest-dark"
+                : "border-line bg-white text-ink-soft hover:border-forest/40"
+            }`}
+          >
+            <Icon size={18} />
+            {t(label[0], label[1])}
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -137,107 +269,220 @@ export function PaymentStep({
         </p>
       )}
 
-      <div className="mt-6">
-        {!data.virtualAccountNumber ? (
-          <button
-            type="button"
-            onClick={generateAccount}
-            disabled={generating}
-            className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
-          >
-            {generating && <Loader2 size={16} className="animate-spin" />}
-            {generating
-              ? t("Creating your account...", "Ana ƙirƙirar asusunka...")
-              : t("Generate Payment Account", "Samar da Asusun Biyan Kuɗi")}
-          </button>
-        ) : (
+      {data.paymentStatus === "paid" ? (
+        <motion.div
+          key="paid"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6 flex items-center gap-3 rounded-xl border border-forest/30 bg-forest/5 p-5 text-forest-dark"
+        >
+          <Check size={22} />
+          <div>
+            <p className="font-semibold">{t("Payment Confirmed", "An Tabbatar da Biya")}</p>
+            <p className="text-sm text-ink-soft">
+              {t(
+                `Your ₦${FEE.toLocaleString()} ID card fee has been received.`,
+                `An karɓi kuɗin katin shaida na ₦${FEE.toLocaleString()}.`
+              )}
+            </p>
+          </div>
+        </motion.div>
+      ) : (
+        <div className="mt-6">
           <AnimatePresence mode="wait">
-            {data.paymentStatus === "paid" ? (
-              <motion.div
-                key="paid"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 rounded-xl border border-forest/30 bg-forest/5 p-5 text-forest-dark"
-              >
-                <Check size={22} />
-                <div>
-                  <p className="font-semibold">
-                    {t("Payment Confirmed", "An Tabbatar da Biya")}
-                  </p>
-                  <p className="text-sm text-ink-soft">
-                    {t(
-                      `Your ₦${FEE.toLocaleString()} ID card fee has been received.`,
-                      `An karɓi kuɗin katin shaida na ₦${FEE.toLocaleString()}.`
-                    )}
-                  </p>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="pending"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-line bg-white p-6"
-              >
-                <p className="text-xs font-semibold uppercase tracking-wide text-terracotta">
-                  {t("Pay Exactly", "Biya daidai")}
-                </p>
-                <p className="mt-1 font-serif text-3xl font-semibold text-forest-dark">
-                  ₦{FEE.toLocaleString()}
-                </p>
-                <div className="mt-5 space-y-3 text-sm">
-                  <div className="flex items-center justify-between border-b border-line pb-3">
-                    <span className="text-ink-soft">{t("Bank", "Banki")}</span>
-                    <span className="font-medium text-ink">{data.virtualAccountBank}</span>
-                  </div>
-                  <div className="flex items-center justify-between border-b border-line pb-3">
-                    <span className="text-ink-soft">
-                      {t("Account Number", "Lambar asusu")}
-                    </span>
+            {method === "bankTransfer" && (
+              <motion.div key="bankTransfer" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                {!data.virtualAccountNumber ? (
+                  <button
+                    type="button"
+                    onClick={generateAccount}
+                    disabled={generating}
+                    className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
+                  >
+                    {generating && <Loader2 size={16} className="animate-spin" />}
+                    {generating
+                      ? t("Creating your account...", "Ana ƙirƙirar asusunka...")
+                      : t("Generate Payment Account", "Samar da Asusun Biyan Kuɗi")}
+                  </button>
+                ) : (
+                  <div className="rounded-xl border border-line bg-white p-6">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-terracotta">
+                      {t("Pay Exactly", "Biya daidai")}
+                    </p>
+                    <p className="mt-1 font-serif text-3xl font-semibold text-forest-dark">
+                      ₦{FEE.toLocaleString()}
+                    </p>
+                    <div className="mt-5 space-y-3 text-sm">
+                      <div className="flex items-center justify-between border-b border-line pb-3">
+                        <span className="text-ink-soft">{t("Bank", "Banki")}</span>
+                        <span className="font-medium text-ink">{data.virtualAccountBank}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-line pb-3">
+                        <span className="text-ink-soft">
+                          {t("Account Number", "Lambar asusu")}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={copyAccount}
+                          className="inline-flex items-center gap-1.5 font-mono font-medium text-forest-dark"
+                        >
+                          {data.virtualAccountNumber}
+                          {copied ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-ink-soft">{t("Account Name", "Sunan asusu")}</span>
+                        <span className="text-right font-medium text-ink">
+                          {data.virtualAccountBank
+                            ? `FFFCSL / ${data.firstName} ${data.lastName}`.toUpperCase()
+                            : ""}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex items-center gap-3 rounded-lg bg-cream-soft p-4">
+                      <Loader2 size={18} className="animate-spin text-forest" />
+                      <p className="text-sm text-ink-soft">
+                        {t(
+                          "Waiting for your transfer — checking automatically…",
+                          "Ana jiran tura kuɗin ka — ana dubawa ta atomatik…"
+                        )}
+                      </p>
+                    </div>
                     <button
                       type="button"
-                      onClick={copyAccount}
-                      className="inline-flex items-center gap-1.5 font-mono font-medium text-forest-dark"
+                      onClick={() => checkPayment(false)}
+                      disabled={checking}
+                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-semibold text-ink transition-colors hover:brightness-95 disabled:opacity-60"
                     >
-                      {data.virtualAccountNumber}
-                      {copied ? <Check size={14} /> : <Copy size={14} />}
+                      {checking && <Loader2 size={16} className="animate-spin" />}
+                      {checking
+                        ? t("Checking...", "Ana dubawa...")
+                        : t("Check Now", "Duba Yanzu")}
                     </button>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-ink-soft">{t("Account Name", "Sunan asusu")}</span>
-                    <span className="text-right font-medium text-ink">
-                      {data.virtualAccountBank
-                        ? `FFFCSL / ${data.firstName} ${data.lastName}`.toUpperCase()
-                        : ""}
-                    </span>
-                  </div>
-                </div>
+                )}
+              </motion.div>
+            )}
 
-                <div className="mt-6 flex items-center gap-3 rounded-lg bg-cream-soft p-4">
-                  <Loader2 size={18} className="animate-spin text-forest" />
-                  <p className="text-sm text-ink-soft">
-                    {t(
-                      "Waiting for your transfer — checking automatically…",
-                      "Ana jiran tura kuɗin ka — ana dubawa ta atomatik…"
-                    )}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => checkPayment(false)}
-                  disabled={checking}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-semibold text-ink transition-colors hover:brightness-95 disabled:opacity-60"
-                >
-                  {checking && <Loader2 size={16} className="animate-spin" />}
-                  {checking
-                    ? t("Checking...", "Ana dubawa...")
-                    : t("Check Now", "Duba Yanzu")}
-                </button>
+            {method === "ussd" && (
+              <motion.div key="ussd" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                {!data.ussdCode ? (
+                  <div className="rounded-xl border border-line bg-white p-6">
+                    <label className="text-sm font-medium text-ink-soft">
+                      {t("Select your bank", "Zaɓi bankinka")}
+                    </label>
+                    <SelectInput
+                      className="mt-1.5"
+                      value={bankCode}
+                      onChange={(e) => setBankCode(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        {t("Select a bank", "Zaɓi banki")}
+                      </option>
+                      {USSD_BANKS.map((b) => (
+                        <option key={b.code} value={b.code}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </SelectInput>
+                    <button
+                      type="button"
+                      onClick={generateUssd}
+                      disabled={generating || !bankCode}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
+                    >
+                      {generating && <Loader2 size={16} className="animate-spin" />}
+                      {generating
+                        ? t("Generating code...", "Ana samar da lambar...")
+                        : t("Generate USSD Code", "Samar da Lambar USSD")}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-line bg-white p-6 text-center">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-terracotta">
+                      {t("Dial this code", "Bugi wannan lambar")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={copyUssd}
+                      className="mx-auto mt-2 inline-flex items-center gap-2 font-mono text-3xl font-semibold text-forest-dark"
+                    >
+                      {data.ussdCode}
+                      {copied ? <Check size={18} /> : <Copy size={18} />}
+                    </button>
+                    <p className="mt-2 text-sm text-ink-soft">
+                      {t(
+                        `Dial this on your phone to pay ₦${FEE.toLocaleString()} — checking automatically…`,
+                        `Bugi wannan a wayarka don biyan ₦${FEE.toLocaleString()} — ana dubawa ta atomatik…`
+                      )}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => checkCheckoutPayment(false)}
+                      disabled={checking}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-semibold text-ink transition-colors hover:brightness-95 disabled:opacity-60"
+                    >
+                      {checking && <Loader2 size={16} className="animate-spin" />}
+                      {checking ? t("Checking...", "Ana dubawa...") : t("Check Now", "Duba Yanzu")}
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {method === "opay" && (
+              <motion.div key="opay" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                {data.checkoutInvoiceId ? (
+                  <div className="rounded-xl border border-line bg-white p-6 text-center">
+                    <div className="mx-auto flex items-center gap-3 rounded-lg bg-cream-soft p-4 text-left">
+                      <Loader2 size={18} className="animate-spin text-forest shrink-0" />
+                      <p className="text-sm text-ink-soft">
+                        {t(
+                          "If you were sent back here before finishing on OPay, check now or tap the button again to reopen OPay.",
+                          "Idan an dawo da kai nan kafin ka gama a OPay, danna duba yanzu ko sake danna maballin don sake buɗe OPay."
+                        )}
+                      </p>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={payWithOpay}
+                        disabled={generating}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
+                      >
+                        {generating && <Loader2 size={16} className="animate-spin" />}
+                        {t("Reopen OPay", "Sake buɗe OPay")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => checkCheckoutPayment(false)}
+                        disabled={checking}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-semibold text-ink transition-colors hover:brightness-95 disabled:opacity-60"
+                      >
+                        {checking && <Loader2 size={16} className="animate-spin" />}
+                        {checking ? t("Checking...", "Ana dubawa...") : t("Check Now", "Duba Yanzu")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={payWithOpay}
+                    disabled={generating}
+                    className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
+                  >
+                    {generating && <Loader2 size={16} className="animate-spin" />}
+                    {generating
+                      ? t("Redirecting to OPay...", "Ana kai ka OPay...")
+                      : t("Pay ₦3,000 with OPay", "Biya ₦3,000 da OPay")}
+                  </button>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
-        )}
-      </div>
+        </div>
+      )}
 
       <StepNav
         onBack={onBack}

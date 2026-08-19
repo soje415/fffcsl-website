@@ -79,7 +79,13 @@ export function RegistrationWizard() {
   }, [step, data, hydrated]);
 
   function update(patch: Partial<RegistrationData>) {
-    setData((d) => ({ ...d, ...patch }));
+    // Written synchronously (not just via the effect above) so state
+    // survives a same-tick hard navigation — e.g. redirecting to OPay.
+    const next = { ...data, ...patch };
+    if (hydrated) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, data: next }));
+    }
+    setData(() => next);
   }
 
   function next() {

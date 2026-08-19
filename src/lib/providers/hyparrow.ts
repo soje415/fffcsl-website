@@ -214,3 +214,56 @@ export async function checkVirtualAccountPaid(customerId: string, amountKobo: nu
     return amount >= amountKobo;
   });
 }
+
+/**
+ * Hyparrow's invoice + hosted-checkout API. Used for the OPay-redirect and
+ * USSD payment rails — separate from the dedicated virtual account above,
+ * which stays the default "bank transfer" method since it already works.
+ */
+export async function createInvoice(input: {
+  title: string;
+  amountNaira: number;
+  customerName?: string;
+  customerEmail?: string;
+}): Promise<{ id: string }> {
+  const payload = await request("/invoices/", {
+    title: input.title,
+    customerName: input.customerName || undefined,
+    customerEmail: input.customerEmail || undefined,
+    lineItems: [{ description: input.title, quantity: 1, unitPrice: input.amountNaira }],
+  });
+  const invoice = (payload?.data ?? {}) as Record<string, unknown>;
+  const id = invoice.id as string | undefined;
+  if (!id) {
+    throw new Error("Hyparrow did not return an invoice id.");
+  }
+  return { id };
+}
+
+export async function initOpayCheckout(invoiceId: string): Promise<{ redirectUrl: string }> {
+  const payload = await request(`/checkout/${invoiceId}/opay`, {});
+  const redirectUrl = payload?.redirectUrl as string | undefined;
+  if (!redirectUrl) {
+    throw new Error("Hyparrow did not return an OPay redirect URL.");
+  }
+  return { redirectUrl };
+}
+
+export async function generateUssdCode(
+  invoiceId: string,
+  bankCode: string
+): Promise<{ ussdCode: string }> {
+  const payload = await request(`/checkout/${invoiceId}/ussd`, { bankCode });
+  const data = (payload?.data ?? {}) as Record<string, unknown>;
+  const ussdCode = data.ussdCode as string | undefined;
+  if (!ussdCode) {
+    throw new Error("Hyparrow did not return a USSD code.");
+  }
+  return { ussdCode };
+}
+
+export async function getCheckoutStatus(invoiceId: string): Promise<boolean> {
+  const payload = await request(`/checkout/${invoiceId}/status`, undefined, "GET");
+  const data = (payload?.data ?? {}) as Record<string, unknown>;
+  return Boolean(data.paid);
+}

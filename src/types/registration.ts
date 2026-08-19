@@ -33,9 +33,13 @@ export type RegistrationData = {
   paymentSmsSent: boolean;
 
   paymentStatus: "pending" | "paid";
+  paymentMethod: "" | "bankTransfer" | "ussd" | "opay";
   virtualAccountNumber: string;
   virtualAccountBank: string;
   virtualAccountCustomerId: string;
+  checkoutInvoiceId: string;
+  ussdCode: string;
+  ussdBankCode: string;
 
   kycType: KycType;
   kycNumber: string;
@@ -77,9 +81,13 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   paymentSmsSent: false,
 
   paymentStatus: "pending",
+  paymentMethod: "",
   virtualAccountNumber: "",
   virtualAccountBank: "",
   virtualAccountCustomerId: "",
+  checkoutInvoiceId: "",
+  ussdCode: "",
+  ussdBankCode: "",
 
   kycType: "",
   kycNumber: "",
