@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1113.0",
     "@neondatabase/serverless": "^1.1.0",
     "clsx": "^2.1.1",
     "framer-motion": "^13.1.0",

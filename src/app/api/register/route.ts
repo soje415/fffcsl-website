@@ -1,4 +1,5 @@
 import { ensureSchema, sql } from "@/lib/db";
+import { uploadPhoto } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,16 @@ export async function POST(req: Request) {
 
     const str = (v: unknown) => String(v ?? "").trim();
 
+    const photoDataUrl = str(data.photoDataUrl);
+    let photoKey = "";
+    if (photoDataUrl.startsWith("data:")) {
+      try {
+        photoKey = await uploadPhoto(memberId, photoDataUrl);
+      } catch (err) {
+        console.error("[register] photo upload failed", err);
+      }
+    }
+
     await db`
       INSERT INTO farmers (
         member_id, first_name, last_name, other_names, dob, gender, marital_status,
@@ -33,9 +44,9 @@ export async function POST(req: Request) {
         kyc_type, verification_status, virtual_account_number, virtual_account_bank,
         virtual_account_customer_id
       ) VALUES (
-        ${memberId}, ${firstName}, ${lastName}, ${str(data.otherNames)}, ${str(data.dob)},
+        ${memberId}, ${firstName}, ${lastName},         ${str(data.otherNames)}, ${str(data.dob)},
         ${str(data.gender)}, ${str(data.maritalStatus)}, ${phone}, ${email},
-        ${str(data.photoDataUrl)}, ${str(data.residentialAddress)}, ${str(data.state)},
+        ${photoKey}, ${str(data.residentialAddress)}, ${str(data.state)},
         ${str(data.lga)}, ${str(data.community)}, ${str(data.cluster)},
         ${str(data.farmSizeHectares)}, ${str(data.yearsFarming)}, ${str(data.nokName)},
         ${str(data.nokRelationship)}, ${str(data.nokPhone)}, ${str(data.kycType)},
