@@ -20,6 +20,7 @@ function errorResponse(err: unknown) {
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as {
+      memberId?: string;
       firstName?: string;
       lastName?: string;
       email?: string;
@@ -29,12 +30,14 @@ export async function POST(req: Request) {
       amount?: number;
     };
 
-    if (!body.firstName || !body.lastName || !body.email || !body.phoneNumber) {
+    const memberId = String(body.memberId ?? "").trim();
+
+    if (!memberId || !body.firstName || !body.lastName || !body.email || !body.phoneNumber) {
       return Response.json(
         {
           success: false,
           code: "VALIDATION_ERROR",
-          error: "firstName, lastName, email and phoneNumber are required.",
+          error: "memberId, firstName, lastName, email and phoneNumber are required.",
         },
         { status: 400 }
       );
@@ -54,9 +57,10 @@ export async function POST(req: Request) {
       await ensureSchema();
       const amountKobo = Math.round(Number(body.amount ?? 0) * 100);
       await sql()`
-        INSERT INTO payments (customer_id, amount_kobo, status, account_number, bank_name)
-        VALUES (${account.customerId}, ${amountKobo}, 'pending', ${account.accountNumber}, ${account.bankName})
+        INSERT INTO payments (customer_id, member_id, amount_kobo, status, account_number, bank_name)
+        VALUES (${account.customerId}, ${memberId}, ${amountKobo}, 'pending', ${account.accountNumber}, ${account.bankName})
         ON CONFLICT (customer_id) DO UPDATE SET
+          member_id = EXCLUDED.member_id,
           account_number = EXCLUDED.account_number,
           bank_name = EXCLUDED.bank_name
       `;

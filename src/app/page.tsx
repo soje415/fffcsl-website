@@ -187,9 +187,10 @@ export default function Home() {
               Ready to Register as an FFFCSL Farmer?
             </h2>
             <p className="mt-4 text-cream/75">
-              Complete our online registration, verify your identity, and get
-              your official FFFCSL membership ID &mdash; issued after a one-time
-              &#8358;3,000 processing payment.
+              Pre-register to get your token, then complete ID card
+              registration, verify your identity, and get your official
+              FFFCSL membership ID &mdash; issued after a one-time
+              &#8358;2,000 processing payment.
             </p>
           </Reveal>
           <Reveal delay={0.1}>

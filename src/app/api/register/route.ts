@@ -42,7 +42,8 @@ export async function POST(req: Request) {
         phone, email, photo, residential_address, state, lga, community, cluster,
         farm_size_hectares, years_farming, nok_name, nok_relationship, nok_phone,
         kyc_type, verification_status, virtual_account_number, virtual_account_bank,
-        virtual_account_customer_id
+        virtual_account_customer_id, payment_method, checkout_invoice_id, ussd_code,
+        ussd_bank_code
       ) VALUES (
         ${memberId}, ${firstName}, ${lastName},         ${str(data.otherNames)}, ${str(data.dob)},
         ${str(data.gender)}, ${str(data.maritalStatus)}, ${phone}, ${email},
@@ -51,7 +52,9 @@ export async function POST(req: Request) {
         ${str(data.farmSizeHectares)}, ${str(data.yearsFarming)}, ${str(data.nokName)},
         ${str(data.nokRelationship)}, ${str(data.nokPhone)}, ${str(data.kycType)},
         ${str(data.verificationStatus)}, ${str(data.virtualAccountNumber)},
-        ${str(data.virtualAccountBank)}, ${str(data.virtualAccountCustomerId)}
+        ${str(data.virtualAccountBank)}, ${str(data.virtualAccountCustomerId)},
+        ${str(data.paymentMethod)}, ${str(data.checkoutInvoiceId)}, ${str(data.ussdCode)},
+        ${str(data.ussdBankCode)}
       )
       ON CONFLICT (member_id) DO UPDATE SET
         first_name = EXCLUDED.first_name,
@@ -77,7 +80,11 @@ export async function POST(req: Request) {
         verification_status = EXCLUDED.verification_status,
         virtual_account_number = EXCLUDED.virtual_account_number,
         virtual_account_bank = EXCLUDED.virtual_account_bank,
-        virtual_account_customer_id = EXCLUDED.virtual_account_customer_id
+        virtual_account_customer_id = EXCLUDED.virtual_account_customer_id,
+        payment_method = EXCLUDED.payment_method,
+        checkout_invoice_id = EXCLUDED.checkout_invoice_id,
+        ussd_code = EXCLUDED.ussd_code,
+        ussd_bank_code = EXCLUDED.ussd_bank_code
     `;
 
     const crops = Array.isArray(data.crops)
@@ -95,7 +102,14 @@ export async function POST(req: Request) {
     if (customerId) {
       await db`
         UPDATE payments SET member_id = ${memberId}
-        WHERE customer_id = ${customerId}
+        WHERE customer_id = ${customerId} AND member_id IS NULL
+      `;
+    }
+    const invoiceId = str(data.checkoutInvoiceId);
+    if (invoiceId) {
+      await db`
+        UPDATE payments SET member_id = ${memberId}
+        WHERE customer_id = ${invoiceId} AND member_id IS NULL
       `;
     }
 

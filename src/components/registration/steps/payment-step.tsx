@@ -9,10 +9,11 @@ import { useLanguage } from "@/components/registration/language";
 import { hyparrowVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
 import { hyparrowCheckoutProvider } from "@/lib/providers/checkout-provider";
 import { otpProvider } from "@/lib/providers/otp-provider";
+import { submitRegistration } from "@/lib/providers/registration-provider";
 import { USSD_BANKS } from "@/lib/ussd-banks";
 import type { RegistrationData } from "@/types/registration";
 
-const FEE = 3000;
+const FEE = 2000;
 
 type Method = "bankTransfer" | "ussd" | "opay";
 
@@ -47,8 +48,8 @@ export function PaymentStep({
     if (data.paymentSmsSent || !data.phone) return;
     const message =
       lang === "ha"
-        ? "An karɓi biyan kuɗi! An tabbatar da kuɗin katin shaida na N3,000 na FFFCSL. Na gode."
-        : "Payment received! Your N3,000 FFFCSL ID card fee is confirmed. Thank you.";
+        ? `An karɓi biyan kuɗi! An tabbatar da kuɗin katin shaida na N${FEE.toLocaleString()} na FFFCSL. Na gode.`
+        : `Payment received! Your N${FEE.toLocaleString()} FFFCSL ID card fee is confirmed. Thank you.`;
     otpProvider
       .sendSms(data.phone, message)
       .then(() => update({ paymentSmsSent: true }))
@@ -57,11 +58,20 @@ export function PaymentStep({
       });
   }
 
+  // Persists payment progress incrementally so a farmer can resume the ID
+  // card flow later, by token, from another device without losing it.
+  function saveProgress(patch: Partial<RegistrationData>) {
+    submitRegistration({ ...data, ...patch }).catch(() => {
+      /* best-effort; the local wizard state is still authoritative for this session */
+    });
+  }
+
   async function generateAccount() {
     setError("");
     setGenerating(true);
     try {
       const account = await hyparrowVirtualAccountProvider.createAccount({
+        memberId: data.memberId,
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone,
@@ -70,12 +80,14 @@ export function PaymentStep({
         address: data.residentialAddress,
         amount: FEE,
       });
-      update({
-        paymentMethod: "bankTransfer",
+      const patch = {
+        paymentMethod: "bankTransfer" as const,
         virtualAccountNumber: account.accountNumber,
         virtualAccountBank: account.bankName,
         virtualAccountCustomerId: account.customerId,
-      });
+      };
+      update(patch);
+      saveProgress(patch);
     } catch (err) {
       setError(
         err instanceof Error
@@ -129,11 +141,13 @@ export function PaymentStep({
   async function ensureInvoice(): Promise<string> {
     if (data.checkoutInvoiceId) return data.checkoutInvoiceId;
     const invoiceId = await hyparrowCheckoutProvider.createInvoice({
+      memberId: data.memberId,
       amount: FEE,
       customerName: `${data.firstName} ${data.lastName}`.trim(),
       customerEmail: data.email,
     });
     update({ checkoutInvoiceId: invoiceId });
+    saveProgress({ checkoutInvoiceId: invoiceId });
     return invoiceId;
   }
 
@@ -147,7 +161,9 @@ export function PaymentStep({
     try {
       const invoiceId = await ensureInvoice();
       const ussdCode = await hyparrowCheckoutProvider.generateUssd(invoiceId, bankCode);
-      update({ paymentMethod: "ussd", ussdCode, ussdBankCode: bankCode });
+      const patch = { paymentMethod: "ussd" as const, ussdCode, ussdBankCode: bankCode };
+      update(patch);
+      saveProgress(patch);
     } catch (err) {
       setError(
         err instanceof Error
@@ -165,6 +181,7 @@ export function PaymentStep({
     try {
       const invoiceId = await ensureInvoice();
       update({ paymentMethod: "opay" });
+      saveProgress({ paymentMethod: "opay" });
       const redirectUrl = await hyparrowCheckoutProvider.initOpay(invoiceId);
       window.location.href = redirectUrl;
     } catch (err) {
@@ -238,8 +255,8 @@ export function PaymentStep({
         <p>
           <strong>{t("Live payment.", "Biya ta gaskiya.")}</strong>{" "}
           {t(
-            "Pay your ₦3,000 FFFCSL ID card fee by bank transfer, USSD, or OPay — this page confirms automatically once it arrives.",
-            "Biya kuɗin katin shaida na FFFCSL na ₦3,000 ta hanyar aika kuɗi, USSD, ko OPay — shafin zai tabbatar da kansa da zarar ya iso."
+            `Pay your ₦${FEE.toLocaleString()} FFFCSL ID card fee by bank transfer, USSD, or OPay — this page confirms automatically once it arrives.`,
+            `Biya kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} ta hanyar aika kuɗi, USSD, ko OPay — shafin zai tabbatar da kansa da zarar ya iso.`
           )}
         </p>
       </div>
@@ -475,7 +492,7 @@ export function PaymentStep({
                     {generating && <Loader2 size={16} className="animate-spin" />}
                     {generating
                       ? t("Redirecting to OPay...", "Ana kai ka OPay...")
-                      : t("Pay ₦3,000 with OPay", "Biya ₦3,000 da OPay")}
+                      : t(`Pay ₦${FEE.toLocaleString()} with OPay`, `Biya ₦${FEE.toLocaleString()} da OPay`)}
                   </button>
                 )}
               </motion.div>

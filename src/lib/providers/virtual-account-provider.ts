@@ -8,6 +8,7 @@ export type VirtualAccount = {
 
 export interface VirtualAccountProvider {
   createAccount(input: {
+    memberId: string;
     firstName: string;
     lastName: string;
     phone: string;
@@ -43,12 +44,14 @@ export const hyparrowVirtualAccountProvider: VirtualAccountProvider = {
     const data = await postJson<{ success: boolean; account: VirtualAccount }>(
       "/api/hyparrow/virtual-account",
       {
+        memberId: input.memberId,
         firstName: input.firstName,
         lastName: input.lastName,
         email: input.email,
         phoneNumber: input.phone,
         dateOfBirth: input.dateOfBirth,
         address: input.address,
+        amount: input.amount,
       }
     );
     return data.account;

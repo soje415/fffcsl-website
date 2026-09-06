@@ -18,8 +18,9 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
  * account (bank transfer) flow.
  */
 export const hyparrowCheckoutProvider = {
-  async createInvoice(input: { amount: number; customerName: string; customerEmail: string }) {
+  async createInvoice(input: { memberId: string; amount: number; customerName: string; customerEmail: string }) {
     const data = await postJson<{ success: boolean; invoiceId: string }>("/api/hyparrow/checkout", {
+      memberId: input.memberId,
       title: "FFFCSL ID Card Fee",
       amount: input.amount,
       customerName: input.customerName,

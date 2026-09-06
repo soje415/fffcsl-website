@@ -1,7 +1,37 @@
+import { Fragment } from "react";
 import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
+import { UserRound } from "lucide-react";
 import logoIcon from "@/assets/brand/logo-icon.jpeg";
 import type { RegistrationData } from "@/types/registration";
+
+function formatDob(dob: string): string {
+  if (!dob) return "—";
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return dob;
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function genderAbbrev(gender: RegistrationData["gender"]): string {
+  if (gender === "Male") return "M";
+  if (gender === "Female") return "F";
+  return "—";
+}
+
+// A faint diagonal hatch, matched to the back's security pattern, to give
+// the printed card body a guilloché-style anti-tamper texture.
+function SecurityPattern() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 opacity-[0.05]"
+      style={{
+        backgroundImage:
+          "repeating-linear-gradient(90deg, rgba(253,248,239,0.5) 0px, rgba(253,248,239,0.5) 1.5px, transparent 1.5px, transparent 4px)",
+      }}
+    />
+  );
+}
 
 export function IdCardFront({
   data,
@@ -22,6 +52,14 @@ export function IdCardFront({
   const resolvedExpires = expires ?? defaultExpires;
   const resolvedMemberSince = memberSince ?? new Date().getFullYear();
 
+  const fields = [
+    { label: "ID", value: data.memberId, mono: true },
+    { label: "DOB / Sex", value: `${formatDob(data.dob)} · ${genderAbbrev(data.gender)}` },
+    { label: "Chapter", value: `${data.state || "—"} · ${data.lga || "—"}` },
+    { label: "Commodity", value: data.crops.join(", ") || "—" },
+    { label: "Member Since", value: String(resolvedMemberSince) },
+  ];
+
   return (
     <>
       {/* Front */}
@@ -32,19 +70,19 @@ export function IdCardFront({
           className="pointer-events-none absolute -right-10 -top-6 h-auto w-40 rotate-6 opacity-[0.08] mix-blend-luminosity"
         />
 
-        <div className="relative flex items-center gap-2 border-b border-cream/15 bg-black/10 px-4 py-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white">
+        <div className="relative flex items-center gap-2 border-b border-cream/15 bg-black/10 px-4 py-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white">
             <Image
               src={logoIcon}
               alt=""
-              className="h-6 w-auto object-contain"
+              className="h-5 w-auto object-contain"
             />
           </span>
           <div className="min-w-0 flex-1 leading-tight">
-            <p className="text-base font-extrabold tracking-wide text-cream">
+            <p className="text-[13px] font-extrabold tracking-wide text-cream">
               FFFCSL
             </p>
-            <p className="truncate text-[7px] tracking-wide text-cream/70">
+            <p className="truncate text-[6.5px] tracking-wide text-cream/70">
               FEDERATION OF FADAMA FARMERS COOPERATIVE SOCIETY LTD.
             </p>
           </div>
@@ -53,50 +91,75 @@ export function IdCardFront({
           </span>
         </div>
 
-        <div className="relative flex flex-1 gap-3 px-4 py-2.5">
-          <div className="h-[68px] w-[56px] shrink-0 overflow-hidden rounded-md border-2 border-cream/70 bg-cream/10">
-            {data.photoDataUrl && (
-              <Image
-                src={data.photoDataUrl}
-                alt=""
-                width={56}
-                height={68}
-                className="h-full w-full object-cover"
-              />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold leading-tight text-cream">
-              {data.firstName} {data.lastName}
-            </p>
-            <p className="text-[7.5px] uppercase tracking-wide text-amber">
-              Registered Farmer
-            </p>
+        <div className="relative flex flex-1 items-stretch">
+          <SecurityPattern />
 
-            <div className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-1.5 gap-y-0.5 text-[7px] text-cream/85">
-              <span className="text-cream/50">ID</span>
-              <span className="truncate font-mono font-semibold text-cream">
-                {data.memberId}
-              </span>
-              <span className="text-cream/50">Chapter</span>
-              <span className="truncate">
-                {data.state} &middot; {data.lga}
-              </span>
-              <span className="text-cream/50">Commodity</span>
-              <span className="truncate">{data.crops.join(", ") || "—"}</span>
-              <span className="text-cream/50">Member Since</span>
-              <span>{resolvedMemberSince}</span>
+          <div className="relative flex w-[86px] shrink-0 items-stretch justify-center border-r border-cream/15 bg-black/10 p-2">
+            <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-sm border-2 border-cream/70 bg-cream/10">
+              {data.photoDataUrl ? (
+                <Image
+                  src={data.photoDataUrl}
+                  alt=""
+                  width={70}
+                  height={130}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <UserRound size={30} className="text-cream/30" />
+              )}
             </div>
           </div>
-          <div className="flex shrink-0 flex-col items-center justify-between self-stretch">
-            <div className="rounded-md bg-white p-1">
-              <QRCodeSVG value={verifyUrl} size={42} fgColor="#123a20" />
+
+          <div className="relative flex min-w-0 flex-1 flex-col justify-between px-3 py-2 text-left">
+            {data.photoDataUrl && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-2 top-0 h-full w-16 opacity-[0.16] mix-blend-luminosity"
+              >
+                <Image
+                  src={data.photoDataUrl}
+                  alt=""
+                  width={64}
+                  height={140}
+                  className="h-full w-full grayscale object-cover object-top"
+                />
+              </div>
+            )}
+            <div className="relative">
+              <p className="truncate font-serif text-[14px] font-bold leading-tight text-cream">
+                {data.firstName} {data.lastName}
+              </p>
+              <p className="mt-1 text-[7px] font-semibold uppercase tracking-[0.15em] text-amber">
+                Registered Farmer
+              </p>
             </div>
-            <p className="text-center text-[6px] leading-tight text-cream/60">
-              Valid till
-              <br />
-              {resolvedExpires.toLocaleDateString()}
-            </p>
+
+            <div className="relative grid grid-cols-[auto_1fr] items-baseline gap-x-2.5 gap-y-1.5 text-[7.5px] text-cream/85">
+              {fields.map((f) => (
+                <Fragment key={f.label}>
+                  <span className="text-[6.5px] uppercase tracking-wide text-cream/50">
+                    {f.label}
+                  </span>
+                  <span
+                    className={`truncate text-left font-semibold text-cream ${f.mono ? "font-mono tracking-tight" : ""}`}
+                  >
+                    {f.value}
+                  </span>
+                </Fragment>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative flex w-[72px] shrink-0 flex-col items-center justify-between border-l border-cream/15 px-2 py-2.5 text-center">
+            <div className="rounded-md bg-white p-1">
+              <QRCodeSVG value={verifyUrl} size={44} fgColor="#123a20" />
+            </div>
+            <div>
+              <p className="text-[6px] leading-tight text-cream/60">Valid till</p>
+              <p className="text-[7px] font-semibold leading-tight text-cream">
+                {resolvedExpires.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -154,6 +217,16 @@ function IdCardBack({ data }: { data: RegistrationData }) {
           </p>
         </div>
 
+        {/* Microprint band — a repeating fine-print line real ID printers
+            use because it degrades into an illegible smear on photocopiers
+            and low-DPI scans, unlike the rest of the card. */}
+        <p
+          aria-hidden
+          className="relative mt-2 overflow-hidden truncate whitespace-nowrap border-y border-cream/10 py-1 text-[4px] font-semibold uppercase leading-none tracking-[0.2em] text-cream/35"
+        >
+          {Array(12).fill(`FFFCSL ${data.memberId} AUTHENTIC MEMBER`).join(" • ")}
+        </p>
+
         <div className="relative mt-auto flex items-end justify-between">
           <div className="text-[7px] text-cream/70">
             <p>info@fffcsl.org.ng</p>
@@ -166,8 +239,14 @@ function IdCardBack({ data }: { data: RegistrationData }) {
                 Authorized Signature
               </p>
             </div>
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed border-amber/70 text-center">
-              <span className="text-[5.5px] font-bold uppercase leading-tight text-amber">
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-center shadow-[inset_0_0_6px_rgba(0,0,0,0.35)]"
+              style={{
+                background:
+                  "conic-gradient(from 200deg, #f5c451, #8fd9c4, #f5c451, #b48ff0, #f5c451)",
+              }}
+            >
+              <span className="rounded-full bg-forest-dark/85 px-1 py-1.5 text-[5px] font-bold uppercase leading-tight text-amber">
                 FFFCSL
                 <br />
                 Official

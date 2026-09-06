@@ -61,8 +61,8 @@ export function ConsentStep({
           />
           <span className="text-sm text-ink-soft">
             {t(
-              "I agree to the terms of FFFCSL membership, including the one-time ₦3,000 non-refundable ID card processing fee.",
-              "Na yarda da sharuɗɗan zama memba na FFFCSL, gami da kuɗin sarrafa katin shaida na ₦3,000 wanda ba a mayarwa."
+              "I agree to the terms of FFFCSL membership, including the one-time ₦2,000 non-refundable ID card processing fee.",
+              "Na yarda da sharuɗɗan zama memba na FFFCSL, gami da kuɗin sarrafa katin shaida na ₦2,000 wanda ba a mayarwa."
             )}
           </span>
         </label>

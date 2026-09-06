@@ -15,33 +15,33 @@ import { Reveal, RevealGroup } from "@/components/ui/reveal";
 export const metadata: Metadata = {
   title: "Become a Member",
   description:
-    "Register with FFFCSL: submit your details, verify your identity, pay the ID card fee, and receive your official membership ID.",
+    "Pre-register with FFFCSL to get your token, then pay the ID card fee, verify your identity, and receive your official membership ID.",
 };
 
 const STEPS = [
   {
     icon: ClipboardList,
-    title: "1. Register Your Details",
+    title: "1. Pre-Register",
     description:
-      "Provide your personal, address, and farm details in our standard registration form — the same information required for cooperative membership across Nigeria.",
+      "Give us your name and phone number and we'll issue you a token — no identity verification needed yet.",
   },
   {
     icon: Wallet,
     title: "2. Pay the ID Card Fee",
     description:
-      "A one-time ₦3,000 processing fee is paid into a dedicated virtual account generated specifically for you.",
+      "Bring your token back to ID Card Registration and pay a one-time ₦2,000 processing fee by bank transfer, USSD, or OPay.",
   },
   {
     icon: ShieldCheck,
     title: "3. Verify Your Identity",
     description:
-      "Once payment is confirmed, your BVN and NIN are verified automatically to confirm your identity and protect the integrity of the Federation's membership records.",
+      "Once payment is confirmed, your BVN or NIN is verified automatically to confirm your identity and protect the integrity of the Federation's membership records.",
   },
   {
     icon: IdCard,
     title: "4. Get Your Membership ID",
     description:
-      "Once payment is confirmed, your FFFCSL profile is activated and your official membership ID card is ready to view, download, and print.",
+      "Finish your personal, farm, and next-of-kin details and your official membership ID card is ready to view, download, and print.",
   },
 ];
 
@@ -51,7 +51,7 @@ export default function MembershipPage() {
       <PageHero
         eyebrow="Become a Member"
         title="Join FFFCSL as a Registered Farmer"
-        description="Our online registration takes you from application to an official, verified FFFCSL membership ID card in four steps."
+        description="Pre-register to get your token, then use it to complete payment, identity verification, and your official FFFCSL membership ID card."
       />
 
       <section className="py-16 sm:py-20">

@@ -4,13 +4,13 @@ import { STEP_LABELS } from "@/types/registration";
 import { useLanguage } from "@/components/registration/language";
 
 const HAUSA_STEP_LABELS = [
+  "Biya",
   "Tabbatar da asali",
   "Bayanan kai",
   "Tabbatar da waya",
   "Adireshi da gona",
   "Mai kula da kai",
   "Yarjejeniya",
-  "Biya",
   "Katin zama memba",
 ];
 

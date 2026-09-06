@@ -8,6 +8,7 @@ import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
 import { hyparrowIdentityVerifier } from "@/lib/providers/identity-verifier";
 import { autofillFromKyc } from "@/lib/kyc-autofill";
+import { submitRegistration } from "@/lib/providers/registration-provider";
 import type { KycType, RegistrationData } from "@/types/registration";
 
 export function VerificationStep({
@@ -44,11 +45,17 @@ export function VerificationStep({
       const result = await hyparrowIdentityVerifier.verify({
         type: data.kycType,
         identifier: data.kycNumber,
+        memberId: data.memberId,
       });
       if (result.status === "verified") {
-        update({
+        const patch: Partial<RegistrationData> = {
           verificationStatus: "verified",
+          kycType: data.kycType,
           ...(result.record ? autofillFromKyc(result.record, data) : {}),
+        };
+        update(patch);
+        submitRegistration({ ...data, ...patch }).catch(() => {
+          /* best-effort; resuming by token will just re-run KYC if this didn't save */
         });
       } else {
         update({ verificationStatus: "mismatch" });
@@ -76,7 +83,7 @@ export function VerificationStep({
       <div className="flex items-start gap-2 rounded-xl border border-forest/30 bg-forest/5 p-4 text-sm text-forest-dark">
         <ShieldCheck size={18} className="mt-0.5 shrink-0" />
         <p>
-          <strong>{t("Start with a live identity check.", "Fara da binciken asali na gaskiya.")}</strong>{" "}
+          <strong>{t("Now, a live identity check.", "Yanzu, binciken asali na gaskiya.")}</strong>{" "}
           {t(
             "Choose BVN or NIN and we'll look it up with the National Identity Management Commission or your bank via Hyparrow, then auto-fill your name, date of birth and gender below so you don't have to type them twice.",
             "Zaɓi BVN ko NIN, za mu bincika tare da hukumar NIMC ko bankinka ta Hyparrow, sannan mu cika sunanka, ranar haihuwa da jinsi a ƙasa ta atomatik don kada ka rubuta su sau biyu."

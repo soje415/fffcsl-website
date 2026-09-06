@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
 import { PageHero } from "@/components/ui/page-hero";
-import { RegistrationWizard } from "@/components/registration/registration-wizard";
+import { PreRegisterForm } from "@/components/registration/pre-register-form";
 
 export const metadata: Metadata = {
-  title: "Register",
-  description: "Register as an FFFCSL farmer and get your official membership ID.",
+  title: "Pre-Register",
+  description: "Pre-register with FFFCSL to get your token, then continue to ID card registration.",
 };
 
-export default function RegisterPage() {
+export default function PreRegisterPage() {
   return (
     <>
       <PageHero
-        eyebrow="Membership Registration"
-        title="Register as an FFFCSL Farmer"
-        description="Verify your identity with your BVN or NIN, fill in your details, pay the ₦3,000 ID card fee, and get your official membership ID."
+        eyebrow="Membership Pre-Registration"
+        title="Pre-Register as an FFFCSL Farmer"
+        description="Give us your name and phone number to get a token. You'll use it to come back, pay the ₦2,000 ID card fee, and verify your identity."
       />
-      <RegistrationWizard />
+      <PreRegisterForm />
     </>
   );
 }

@@ -14,7 +14,7 @@ export type VerificationResult = {
 };
 
 export interface IdentityVerifier {
-  verify(input: { type: "bvn" | "nin"; identifier: string }): Promise<VerificationResult>;
+  verify(input: { type: "bvn" | "nin"; identifier: string; memberId: string }): Promise<VerificationResult>;
 }
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
@@ -41,7 +41,11 @@ export const hyparrowIdentityVerifier: IdentityVerifier = {
       status: VerificationResult["status"];
       record?: IdentityRecord;
       reason?: string;
-    }>("/api/hyparrow/verify", input);
+    }>("/api/hyparrow/verify", {
+      type: input.type,
+      identifier: input.identifier,
+      memberId: input.memberId,
+    });
     return {
       status: data.status,
       record: data.record,

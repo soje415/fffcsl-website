@@ -96,13 +96,15 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   memberId: "",
 };
 
+// Order for the ID Card Registration wizard (Phase 2, after a farmer has
+// already pre-registered and holds a token) — payment comes first, then KYC.
 export const STEP_LABELS = [
+  "Payment",
   "Identity Verification",
   "Personal Details",
   "Phone Verification",
   "Address & Farm",
   "Next of Kin",
   "Consent",
-  "Payment",
   "Membership ID",
 ];
