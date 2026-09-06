@@ -6,10 +6,13 @@ import { Check, Loader2, ShieldCheck, ShieldX } from "lucide-react";
 import { FieldWrap, TextInput, SelectInput } from "@/components/registration/field";
 import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
-import { hyparrowIdentityVerifier } from "@/lib/providers/identity-verifier";
+import { hyparrowIdentityVerifier, mockIdentityVerifier } from "@/lib/providers/identity-verifier";
 import { autofillFromKyc } from "@/lib/kyc-autofill";
 import { submitRegistration } from "@/lib/providers/registration-provider";
+import { isDemoMode } from "@/lib/demo-mode";
 import type { KycType, RegistrationData } from "@/types/registration";
+
+const identityVerifier = isDemoMode() ? mockIdentityVerifier : hyparrowIdentityVerifier;
 
 export function VerificationStep({
   data,
@@ -42,7 +45,7 @@ export function VerificationStep({
     setReason("");
     setChecking(true);
     try {
-      const result = await hyparrowIdentityVerifier.verify({
+      const result = await identityVerifier.verify({
         type: data.kycType,
         identifier: data.kycNumber,
         memberId: data.memberId,
@@ -90,6 +93,15 @@ export function VerificationStep({
           )}
         </p>
       </div>
+
+      {isDemoMode() && (
+        <p className="mt-3 text-xs font-medium text-terracotta-dark">
+          {t(
+            "Demo mode: any 11-digit number will verify — no real BVN/NIN lookup happens.",
+            "Yanayin gwaji: kowace lambar lambobi 11 za ta tabbata — babu ainihin binciken BVN/NIN."
+          )}
+        </p>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
         <FieldWrap label="Verification Type" hausa="Nau'in tabbatarwa">

@@ -11,6 +11,7 @@ import {
 import { Container } from "@/components/ui/container";
 import { PageHero } from "@/components/ui/page-hero";
 import { Reveal, RevealGroup } from "@/components/ui/reveal";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export const metadata: Metadata = {
   title: "Become a Member",
@@ -93,15 +94,16 @@ export default function MembershipPage() {
               <ArrowRight size={16} />
             </Link>
 
-            <div className="mx-auto mt-8 flex max-w-md items-start gap-2 rounded-xl border border-amber/40 bg-amber/10 p-4 text-left text-sm text-walnut-dark">
-              <FlaskConical size={18} className="mt-0.5 shrink-0" />
-              <p>
-                <strong>Test mode:</strong> payment and BVN/NIN verification
-                are simulated for this preview — no real bank transfer or
-                identity lookup happens yet. It will connect to live
-                Hyparrow &amp; Supabase once credentials are added.
-              </p>
-            </div>
+            {isDemoMode() && (
+              <div className="mx-auto mt-8 flex max-w-md items-start gap-2 rounded-xl border border-amber/40 bg-amber/10 p-4 text-left text-sm text-walnut-dark">
+                <FlaskConical size={18} className="mt-0.5 shrink-0" />
+                <p>
+                  <strong>Demo mode:</strong> payment, phone, and BVN/NIN
+                  verification are simulated for this walkthrough — no real
+                  transfer, SMS, or identity lookup happens.
+                </p>
+              </div>
+            )}
           </Reveal>
         </Container>
       </section>

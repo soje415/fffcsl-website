@@ -1,4 +1,5 @@
 import { sendOtp, toInternational } from "@/lib/providers/termii";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,9 @@ export async function POST(req: Request) {
         { success: false, code: "VALIDATION_ERROR", error: "Enter a valid phone number." },
         { status: 400 }
       );
+    }
+    if (isDemoMode()) {
+      return Response.json({ success: true, pinId: "demo" });
     }
     const pinId = await sendOtp(phone);
     return Response.json({ success: true, pinId });

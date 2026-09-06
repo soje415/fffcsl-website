@@ -1,4 +1,5 @@
 import { sendSms, toInternational } from "@/lib/providers/termii";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +23,9 @@ export async function POST(req: Request) {
       );
     }
 
-    await sendSms(phone, message);
+    if (!isDemoMode()) {
+      await sendSms(phone, message);
+    }
     return Response.json({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not send the SMS.";

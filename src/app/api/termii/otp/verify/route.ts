@@ -1,4 +1,5 @@
 import { verifyOtp } from "@/lib/providers/termii";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,9 @@ export async function POST(req: Request) {
         { success: false, code: "VALIDATION_ERROR", error: "PIN id and code are required." },
         { status: 400 }
       );
+    }
+    if (isDemoMode() && pinId === "demo") {
+      return Response.json({ success: true, verified: true });
     }
     const verified = await verifyOtp(pinId, pin);
     return Response.json({ success: true, verified });

@@ -6,6 +6,7 @@ import { Check, Loader2, MessageSquareText, Smartphone } from "lucide-react";
 import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
 import { otpProvider } from "@/lib/providers/otp-provider";
+import { isDemoMode } from "@/lib/demo-mode";
 import type { RegistrationData } from "@/types/registration";
 
 export function PhoneVerificationStep({
@@ -77,6 +78,15 @@ export function PhoneVerificationStep({
           )}
         </p>
       </div>
+
+      {isDemoMode() && (
+        <p className="mt-3 text-xs font-medium text-terracotta-dark">
+          {t(
+            "Demo mode: any code you enter will be accepted.",
+            "Yanayin gwaji: kowace lambar da ka shigar za a karɓa."
+          )}
+        </p>
+      )}
 
       <div className="mt-6 rounded-xl border border-line bg-cream-soft p-4">
         <p className="text-sm font-medium text-ink-soft">

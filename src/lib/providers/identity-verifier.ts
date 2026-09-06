@@ -57,9 +57,12 @@ export const hyparrowIdentityVerifier: IdentityVerifier = {
 export const mockIdentityVerifier: IdentityVerifier = {
   async verify() {
     await new Promise((r) => setTimeout(r, 900));
+    // Leaves firstName/lastName out so autofillFromKyc doesn't overwrite the
+    // name the farmer already entered at pre-registration — only dob/gender
+    // get the "autofill" treatment, which is enough to show the effect.
     return {
       status: "verified",
-      record: { firstName: "Amina", lastName: "Bello", dateOfBirth: "1990-01-01", gender: "Female" },
+      record: { dateOfBirth: "1990-01-01", gender: "Female" },
     };
   },
 };

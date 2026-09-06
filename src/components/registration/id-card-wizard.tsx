@@ -16,6 +16,7 @@ import { AddressFarmStep } from "@/components/registration/steps/address-farm-st
 import { NextOfKinStep } from "@/components/registration/steps/next-of-kin-step";
 import { ConsentStep } from "@/components/registration/steps/consent-step";
 import { SuccessStep } from "@/components/registration/steps/success-step";
+import { isDemoMode } from "@/lib/demo-mode";
 import { EMPTY_REGISTRATION, type RegistrationData } from "@/types/registration";
 
 const STORAGE_KEY = "fffcsl-idcard-draft";
@@ -40,8 +41,15 @@ function readDraft(): WizardState | null {
 function WizardHeader({ onStartOver }: { onStartOver: () => void }) {
   const { t } = useLanguage();
   return (
-    <div className="mb-4 flex items-center justify-between">
-      <LanguageToggle />
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <LanguageToggle />
+        {isDemoMode() && (
+          <span className="rounded-full bg-amber/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-walnut-dark">
+            {t("Demo Mode", "Yanayin Gwaji")}
+          </span>
+        )}
+      </div>
       <button
         type="button"
         onClick={onStartOver}

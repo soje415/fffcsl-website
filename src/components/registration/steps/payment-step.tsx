@@ -6,22 +6,28 @@ import { Copy, Check, Loader2, Banknote, Smartphone, Landmark } from "lucide-rea
 import { StepNav } from "@/components/registration/step-nav";
 import { SelectInput } from "@/components/registration/field";
 import { useLanguage } from "@/components/registration/language";
-import { hyparrowVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
+import { hyparrowVirtualAccountProvider, mockVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
 import { hyparrowCheckoutProvider } from "@/lib/providers/checkout-provider";
 import { otpProvider } from "@/lib/providers/otp-provider";
 import { submitRegistration } from "@/lib/providers/registration-provider";
+import { isDemoMode } from "@/lib/demo-mode";
 import { USSD_BANKS } from "@/lib/ussd-banks";
 import type { RegistrationData } from "@/types/registration";
 
 const FEE = 2000;
+const DEMO = isDemoMode();
+const virtualAccountProvider = DEMO ? mockVirtualAccountProvider : hyparrowVirtualAccountProvider;
 
 type Method = "bankTransfer" | "ussd" | "opay";
 
-const METHODS: { id: Method; label: [string, string]; icon: typeof Landmark }[] = [
+const ALL_METHODS: { id: Method; label: [string, string]; icon: typeof Landmark }[] = [
   { id: "bankTransfer", label: ["Bank Transfer", "Aika kuɗi"], icon: Landmark },
   { id: "ussd", label: ["USSD", "USSD"], icon: Smartphone },
   { id: "opay", label: ["Pay with OPay", "Biya da OPay"], icon: Banknote },
 ];
+// USSD/OPay have no free-to-run mock (they need a live invoice to confirm
+// against), so the demo sticks to bank transfer, which mocks instantly.
+const METHODS = DEMO ? ALL_METHODS.filter((m) => m.id === "bankTransfer") : ALL_METHODS;
 
 export function PaymentStep({
   data,
@@ -70,7 +76,7 @@ export function PaymentStep({
     setError("");
     setGenerating(true);
     try {
-      const account = await hyparrowVirtualAccountProvider.createAccount({
+      const account = await virtualAccountProvider.createAccount({
         memberId: data.memberId,
         firstName: data.firstName,
         lastName: data.lastName,
@@ -104,7 +110,7 @@ export function PaymentStep({
     pollingRef.current = true;
     if (!silent) setChecking(true);
     try {
-      const status = await hyparrowVirtualAccountProvider.checkStatus(
+      const status = await virtualAccountProvider.checkStatus(
         data.virtualAccountCustomerId,
         FEE
       );
@@ -254,10 +260,15 @@ export function PaymentStep({
         <Banknote size={18} className="mt-0.5 shrink-0" />
         <p>
           <strong>{t("Live payment.", "Biya ta gaskiya.")}</strong>{" "}
-          {t(
-            `Pay your ₦${FEE.toLocaleString()} FFFCSL ID card fee by bank transfer, USSD, or OPay — this page confirms automatically once it arrives.`,
-            `Biya kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} ta hanyar aika kuɗi, USSD, ko OPay — shafin zai tabbatar da kansa da zarar ya iso.`
-          )}
+          {DEMO
+            ? t(
+                `Demo mode simulates the ₦${FEE.toLocaleString()} FFFCSL ID card fee — it confirms itself in a few seconds, no real transfer needed.`,
+                `Yanayin gwaji yana kwaikwayon kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} — zai tabbata da kansa cikin ƴan daƙiƙa, ba tare da ainihin turawa ba.`
+              )
+            : t(
+                `Pay your ₦${FEE.toLocaleString()} FFFCSL ID card fee by bank transfer, USSD, or OPay — this page confirms automatically once it arrives.`,
+                `Biya kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} ta hanyar aika kuɗi, USSD, ko OPay — shafin zai tabbatar da kansa da zarar ya iso.`
+              )}
         </p>
       </div>
 
