@@ -26,7 +26,9 @@ export async function ensureSchema() {
     gender TEXT DEFAULT '',
     marital_status TEXT DEFAULT '',
     phone TEXT NOT NULL,
-    email TEXT NOT NULL,
+    email TEXT DEFAULT '',
+    nin TEXT DEFAULT '',
+    bvn TEXT DEFAULT '',
     photo TEXT DEFAULT '',
     residential_address TEXT DEFAULT '',
     state TEXT DEFAULT '',
@@ -54,6 +56,8 @@ export async function ensureSchema() {
   await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS checkout_invoice_id TEXT DEFAULT ''`;
   await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS ussd_code TEXT DEFAULT ''`;
   await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS ussd_bank_code TEXT DEFAULT ''`;
+  await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS nin TEXT DEFAULT ''`;
+  await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS bvn TEXT DEFAULT ''`;
   await sql()`CREATE TABLE IF NOT EXISTS farmer_crops (
     id BIGSERIAL PRIMARY KEY,
     member_id TEXT NOT NULL REFERENCES farmers(member_id) ON DELETE CASCADE,

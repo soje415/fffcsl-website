@@ -108,13 +108,14 @@ export function VerificationStep({
           <SelectInput
             required
             value={data.kycType}
-            onChange={(e) =>
+            onChange={(e) => {
+              const type = e.target.value as KycType;
               update({
-                kycType: e.target.value as KycType,
-                kycNumber: "",
+                kycType: type,
+                kycNumber: type === "nin" ? data.nin : type === "bvn" ? data.bvn : "",
                 verificationStatus: "pending",
-              })
-            }
+              });
+            }}
           >
             <option value="" disabled>
               {t("Select BVN or NIN", "Zaɓi BVN ko NIN")}

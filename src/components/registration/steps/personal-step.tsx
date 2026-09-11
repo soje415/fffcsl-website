@@ -38,6 +38,14 @@ export function PersonalStep({
       setError(t("Please upload a passport photograph.", "Da fatan loda hoton fasfo."));
       return;
     }
+    if (!/^\d{11}$/.test(data.nin)) {
+      setError(t("NIN must be exactly 11 digits.", "NIN dole ta kasance lambobi 11 daidai."));
+      return;
+    }
+    if (!/^\d{11}$/.test(data.bvn)) {
+      setError(t("BVN must be exactly 11 digits.", "BVN dole ta kasance lambobi 11 daidai."));
+      return;
+    }
     setError("");
     onNext();
   }
@@ -165,12 +173,35 @@ export function PersonalStep({
             onChange={(e) => update({ phone: e.target.value })}
           />
         </FieldWrap>
-        <FieldWrap label="Email Address" hausa="Adireshin imel">
+        <FieldWrap
+          label="Email Address"
+          hausa="Adireshin imel"
+          hint={t("Optional", "Ba dole ba")}
+        >
           <TextInput
-            required
             type="email"
             value={data.email}
             onChange={(e) => update({ email: e.target.value })}
+          />
+        </FieldWrap>
+        <FieldWrap label="National Identification Number (NIN)" hausa="Lambar NIN">
+          <TextInput
+            required
+            inputMode="numeric"
+            maxLength={11}
+            placeholder={t("11-digit number", "Lambar lambobi 11")}
+            value={data.nin}
+            onChange={(e) => update({ nin: e.target.value.replace(/\D/g, "") })}
+          />
+        </FieldWrap>
+        <FieldWrap label="Bank Verification Number (BVN)" hausa="Lambar BVN">
+          <TextInput
+            required
+            inputMode="numeric"
+            maxLength={11}
+            placeholder={t("11-digit number", "Lambar lambobi 11")}
+            value={data.bvn}
+            onChange={(e) => update({ bvn: e.target.value.replace(/\D/g, "") })}
           />
         </FieldWrap>
       </div>

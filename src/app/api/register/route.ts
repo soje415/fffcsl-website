@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const phone = String(data.phone ?? "").trim();
     const email = String(data.email ?? "").trim();
 
-    if (!memberId || !firstName || !lastName || !phone || !email) {
+    if (!memberId || !firstName || !lastName || !phone) {
       return Response.json(
         { success: false, code: "VALIDATION_ERROR", error: "Missing required registration fields." },
         { status: 400 }
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     await db`
       INSERT INTO farmers (
         member_id, first_name, last_name, other_names, dob, gender, marital_status,
-        phone, email, photo, residential_address, state, lga, community, cluster,
+        phone, email, nin, bvn, photo, residential_address, state, lga, community, cluster,
         farm_size_hectares, years_farming, nok_name, nok_relationship, nok_phone,
         kyc_type, verification_status, virtual_account_number, virtual_account_bank,
         virtual_account_customer_id, payment_method, checkout_invoice_id, ussd_code,
@@ -47,6 +47,7 @@ export async function POST(req: Request) {
       ) VALUES (
         ${memberId}, ${firstName}, ${lastName},         ${str(data.otherNames)}, ${str(data.dob)},
         ${str(data.gender)}, ${str(data.maritalStatus)}, ${phone}, ${email},
+        ${str(data.nin)}, ${str(data.bvn)},
         ${photoKey}, ${str(data.residentialAddress)}, ${str(data.state)},
         ${str(data.lga)}, ${str(data.community)}, ${str(data.cluster)},
         ${str(data.farmSizeHectares)}, ${str(data.yearsFarming)}, ${str(data.nokName)},
@@ -65,6 +66,8 @@ export async function POST(req: Request) {
         marital_status = EXCLUDED.marital_status,
         phone = EXCLUDED.phone,
         email = EXCLUDED.email,
+        nin = EXCLUDED.nin,
+        bvn = EXCLUDED.bvn,
         photo = EXCLUDED.photo,
         residential_address = EXCLUDED.residential_address,
         state = EXCLUDED.state,

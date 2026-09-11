@@ -76,6 +76,8 @@ export async function GET(
         maritalStatus: str(row.marital_status),
         phone: str(row.phone),
         email: str(row.email),
+        nin: str(row.nin),
+        bvn: str(row.bvn),
         residentialAddress: str(row.residential_address),
         state: str(row.state),
         lga: str(row.lga),

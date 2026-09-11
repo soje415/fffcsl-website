@@ -9,6 +9,8 @@ export type RegistrationData = {
   maritalStatus: "" | "Single" | "Married" | "Divorced" | "Widowed";
   phone: string;
   email: string;
+  nin: string;
+  bvn: string;
   photoDataUrl: string;
   photoSource: "" | "kyc" | "upload";
 
@@ -26,7 +28,6 @@ export type RegistrationData = {
   nokPhone: string;
 
   consentData: boolean;
-  consentTerms: boolean;
 
   welcomeSmsSent: boolean;
   paymentSmsSent: boolean;
@@ -56,6 +57,8 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   maritalStatus: "",
   phone: "",
   email: "",
+  nin: "",
+  bvn: "",
   photoDataUrl: "",
   photoSource: "",
 
@@ -73,7 +76,6 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   nokPhone: "",
 
   consentData: false,
-  consentTerms: false,
 
   welcomeSmsSent: false,
   paymentSmsSent: false,

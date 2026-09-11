@@ -50,22 +50,6 @@ export function ConsentStep({
             )}
           </span>
         </label>
-
-        <label className="flex items-start gap-3 rounded-xl border border-line bg-white p-4">
-          <input
-            required
-            type="checkbox"
-            checked={data.consentTerms}
-            onChange={(e) => update({ consentTerms: e.target.checked })}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-forest"
-          />
-          <span className="text-sm text-ink-soft">
-            {t(
-              "I agree to the terms of FFFCSL membership, including the one-time ₦2,000 non-refundable ID card processing fee.",
-              "Na yarda da sharuɗɗan zama memba na FFFCSL, gami da kuɗin sarrafa katin shaida na ₦2,000 wanda ba a mayarwa."
-            )}
-          </span>
-        </label>
       </div>
       <StepNav onBack={onBack} />
     </form>
