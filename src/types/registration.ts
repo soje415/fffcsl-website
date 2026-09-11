@@ -11,7 +11,6 @@ export type RegistrationData = {
   email: string;
   photoDataUrl: string;
   photoSource: "" | "kyc" | "upload";
-  phoneVerified: boolean;
 
   residentialAddress: string;
   state: string;
@@ -59,7 +58,6 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   email: "",
   photoDataUrl: "",
   photoSource: "",
-  phoneVerified: false,
 
   residentialAddress: "",
   state: "",
@@ -96,15 +94,14 @@ export const EMPTY_REGISTRATION: RegistrationData = {
   memberId: "",
 };
 
-// Order for the ID Card Registration wizard (Phase 2, after a farmer has
-// already pre-registered and holds a token) — payment comes first, then KYC.
-export const STEP_LABELS = [
-  "Payment",
-  "Identity Verification",
-  "Personal Details",
-  "Phone Verification",
-  "Address & Farm",
-  "Next of Kin",
-  "Consent",
-  "Membership ID",
-];
+// Order for the Registration wizard (Phase 1) — every personal, farm, and
+// next-of-kin detail is collected *before* a token is issued, so nothing is
+// left to fill in later.
+export const REGISTER_STEP_LABELS = ["Personal Details", "Address & Farm", "Next of Kin", "Consent"];
+export const REGISTER_STEP_LABELS_HA = ["Bayanan kai", "Adireshi da gona", "Mai kula da kai", "Yarjejeniya"];
+
+// Order for the ID Card Registration wizard (Phase 2, after a farmer holds a
+// token from Phase 1) — payment comes first (required server-side before any
+// KYC lookup runs), then BVN/NIN identity verification, then the ID card.
+export const ID_CARD_STEP_LABELS = ["Payment", "Identity Verification", "Membership ID"];
+export const ID_CARD_STEP_LABELS_HA = ["Biya", "Tabbatar da asali", "Katin zama memba"];

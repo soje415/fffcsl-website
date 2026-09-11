@@ -1,48 +1,98 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Check, Copy, Loader2, KeyRound } from "lucide-react";
+import { ArrowRight, Check, Copy, KeyRound, Loader2 } from "lucide-react";
 import { Container } from "@/components/ui/container";
-import { FieldWrap, TextInput } from "@/components/registration/field";
+import { Stepper } from "@/components/registration/stepper";
 import { LanguageProvider, useLanguage } from "@/components/registration/language";
 import { LanguageToggle } from "@/components/registration/language-toggle";
+import { PersonalStep } from "@/components/registration/steps/personal-step";
+import { AddressFarmStep } from "@/components/registration/steps/address-farm-step";
+import { NextOfKinStep } from "@/components/registration/steps/next-of-kin-step";
+import { ConsentStep } from "@/components/registration/steps/consent-step";
 import { generateToken } from "@/lib/member-id";
 import { submitRegistration } from "@/lib/providers/registration-provider";
-import { EMPTY_REGISTRATION } from "@/types/registration";
+import {
+  EMPTY_REGISTRATION,
+  REGISTER_STEP_LABELS,
+  REGISTER_STEP_LABELS_HA,
+  type RegistrationData,
+} from "@/types/registration";
+
+const STORAGE_KEY = "fffcsl-register-draft";
+const LAST_STEP = 3;
+
+type WizardState = { step: number; data: RegistrationData };
+
+function readDraft(): WizardState {
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  if (!saved) return { step: 0, data: EMPTY_REGISTRATION };
+  try {
+    const parsed = JSON.parse(saved) as Partial<WizardState>;
+    return {
+      step: typeof parsed.step === "number" ? parsed.step : 0,
+      data: { ...EMPTY_REGISTRATION, ...parsed.data },
+    };
+  } catch {
+    return { step: 0, data: EMPTY_REGISTRATION };
+  }
+}
 
 function PreRegisterFormInner() {
   const { t } = useLanguage();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [wizard, setWizard] = useState<WizardState>({ step: 0, data: EMPTY_REGISTRATION });
+  const [hydrated, setHydrated] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [token, setToken] = useState("");
   const [copied, setCopied] = useState(false);
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWizard(readDraft());
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || token) return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(wizard));
+  }, [wizard, hydrated, token]);
+
+  function update(patch: Partial<RegistrationData>) {
+    setWizard((w) => ({ ...w, data: { ...w.data, ...patch } }));
+  }
+
+  function setStep(fn: (s: number) => number) {
+    setWizard((w) => ({ ...w, step: fn(w.step) }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function next() {
+    setStep((s) => Math.min(s + 1, LAST_STEP));
+  }
+
+  function back() {
+    setStep((s) => Math.max(s - 1, 0));
+  }
+
+  async function finish() {
     setError("");
     setSubmitting(true);
     const newToken = generateToken();
     try {
-      await submitRegistration({
-        ...EMPTY_REGISTRATION,
-        memberId: newToken,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-      });
+      await submitRegistration({ ...wizard.data, memberId: newToken });
+      window.localStorage.removeItem(STORAGE_KEY);
       setToken(newToken);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : t("Could not save your pre-registration. Please try again.", "Ba a iya ajiye rajistarka ba. Da fatan sake gwadawa.")
+          : t(
+              "Could not save your registration. Please try again.",
+              "Ba a iya ajiye rajistarka ba. Da fatan sake gwadawa."
+            )
       );
     } finally {
       setSubmitting(false);
@@ -55,6 +105,19 @@ function PreRegisterFormInner() {
     setTimeout(() => setCopied(false), 1500);
   }
 
+  if (!hydrated) {
+    return null;
+  }
+
+  const { step, data } = wizard;
+
+  const steps = [
+    <PersonalStep key="0" data={data} update={update} onNext={next} onBack={back} />,
+    <AddressFarmStep key="1" data={data} update={update} onNext={next} onBack={back} />,
+    <NextOfKinStep key="2" data={data} update={update} onNext={next} onBack={back} />,
+    <ConsentStep key="3" data={data} update={update} onNext={finish} onBack={back} />,
+  ];
+
   return (
     <section className="py-12 sm:py-16">
       <Container className="max-w-2xl">
@@ -64,67 +127,20 @@ function PreRegisterFormInner() {
         <div className="rounded-2xl border border-line bg-white p-6 sm:p-9">
           <AnimatePresence mode="wait">
             {!token ? (
-              <motion.form
-                key="form"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onSubmit={handleSubmit}
-              >
-                <p className="text-sm text-ink-soft">
-                  {t(
-                    "Give us your name and phone number and we'll issue you a token. Use it to come back and complete your ID card registration and payment.",
-                    "Ba mu suna da lambar wayarka, za mu ba ka lambar shaida. Ka yi amfani da ita ka dawo ka gama rajistar katin shaida da biya."
-                  )}
-                </p>
-                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <FieldWrap label="First Name" hausa="Suna na farko">
-                    <TextInput
-                      required
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                    />
-                  </FieldWrap>
-                  <FieldWrap label="Last Name / Surname" hausa="Sunan mahaifi">
-                    <TextInput
-                      required
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                    />
-                  </FieldWrap>
-                  <FieldWrap label="Phone Number" hausa="Lambar waya">
-                    <TextInput
-                      required
-                      type="tel"
-                      placeholder="080XXXXXXXX"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
-                  </FieldWrap>
-                  <FieldWrap label="Email Address" hausa="Adireshin imel">
-                    <TextInput
-                      required
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </FieldWrap>
+              <motion.div key="wizard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <div className="mb-8">
+                  <Stepper current={step} labels={REGISTER_STEP_LABELS} hausaLabels={REGISTER_STEP_LABELS_HA} />
                 </div>
-                {error && <p className="mt-4 text-sm text-terracotta-dark">{error}</p>}
-                <div className="mt-8 flex justify-end border-t border-line pt-6">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
-                  >
-                    {submitting && <Loader2 size={16} className="animate-spin" />}
-                    {submitting
-                      ? t("Saving...", "Ana ajiyewa...")
-                      : t("Get My Token", "Sami Lambar Shaida")}
-                    {!submitting && <ArrowRight size={16} />}
-                  </button>
-                </div>
-              </motion.form>
+                {error && <p className="mb-4 text-sm text-terracotta-dark">{error}</p>}
+                {submitting ? (
+                  <div className="flex items-center justify-center gap-2 py-16 text-sm text-ink-soft">
+                    <Loader2 size={18} className="animate-spin" />
+                    {t("Saving your registration...", "Ana ajiye rajistarka...")}
+                  </div>
+                ) : (
+                  steps[step]
+                )}
+              </motion.div>
             ) : (
               <motion.div
                 key="issued"
@@ -136,12 +152,12 @@ function PreRegisterFormInner() {
                   <KeyRound size={26} />
                 </div>
                 <h2 className="mt-4 font-serif text-xl font-semibold text-forest-dark">
-                  {t("You're Pre-Registered", "An Fara Rajistarka")}
+                  {t("You're Registered", "An Kammala Rajistarka")}
                 </h2>
                 <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
                   {t(
-                    "Save this token — you'll need it to continue to ID Card Registration, where you'll pay the ₦2,000 fee and complete your BVN/NIN verification.",
-                    "Ajiye wannan lambar shaida — za ka bukace ta don ci gaba zuwa rajistar katin shaida, inda za ka biya kuɗin ₦2,000 kuma ka kammala tabbatar da BVN/NIN ɗinka."
+                    "Save this token — you'll need it to continue to ID Card Registration, where you'll pay the ₦2,000 fee and complete your BVN/NIN verification to get your official membership ID card.",
+                    "Ajiye wannan lambar shaida — za ka bukace ta don ci gaba zuwa rajistar katin shaida, inda za ka biya kuɗin ₦2,000 kuma ka kammala tabbatar da BVN/NIN ɗinka don samun katin shaidar zama memba."
                   )}
                 </p>
                 <button

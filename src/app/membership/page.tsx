@@ -16,15 +16,15 @@ import { isDemoMode } from "@/lib/demo-mode";
 export const metadata: Metadata = {
   title: "Become a Member",
   description:
-    "Pre-register with FFFCSL to get your token, then pay the ID card fee, verify your identity, and receive your official membership ID.",
+    "Register with FFFCSL with your personal, farm, and next-of-kin details to get your token, then pay the ID card fee and verify your identity to receive your official membership ID.",
 };
 
 const STEPS = [
   {
     icon: ClipboardList,
-    title: "1. Pre-Register",
+    title: "1. Register",
     description:
-      "Give us your name and phone number and we'll issue you a token — no identity verification needed yet.",
+      "Give us your personal, farm, and next-of-kin details — we'll issue you a token when you're done.",
   },
   {
     icon: Wallet,
@@ -42,7 +42,7 @@ const STEPS = [
     icon: IdCard,
     title: "4. Get Your Membership ID",
     description:
-      "Finish your personal, farm, and next-of-kin details and your official membership ID card is ready to view, download, and print.",
+      "Your official membership ID card is ready to view, download, and print.",
   },
 ];
 
@@ -52,7 +52,7 @@ export default function MembershipPage() {
       <PageHero
         eyebrow="Become a Member"
         title="Join FFFCSL as a Registered Farmer"
-        description="Pre-register to get your token, then use it to complete payment, identity verification, and your official FFFCSL membership ID card."
+        description="Register with your details to get your token, then use it to complete payment, identity verification, and your official FFFCSL membership ID card."
       />
 
       <section className="py-16 sm:py-20">

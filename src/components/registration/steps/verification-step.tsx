@@ -88,8 +88,8 @@ export function VerificationStep({
         <p>
           <strong>{t("Now, a live identity check.", "Yanzu, binciken asali na gaskiya.")}</strong>{" "}
           {t(
-            "Choose BVN or NIN and we'll look it up with the National Identity Management Commission or your bank via Hyparrow, then auto-fill your name, date of birth and gender below so you don't have to type them twice.",
-            "Zaɓi BVN ko NIN, za mu bincika tare da hukumar NIMC ko bankinka ta Hyparrow, sannan mu cika sunanka, ranar haihuwa da jinsi a ƙasa ta atomatik don kada ka rubuta su sau biyu."
+            "Choose BVN or NIN and we'll look it up with the National Identity Management Commission or your bank via Hyparrow, and cross-check it against the name, date of birth and gender you gave us at registration.",
+            "Zaɓi BVN ko NIN, za mu bincika tare da hukumar NIMC ko bankinka ta Hyparrow, sannan mu kwatanta shi da sunanka, ranar haihuwa da jinsin da ka bayar lokacin rajista."
           )}
         </p>
       </div>
@@ -172,12 +172,12 @@ export function VerificationStep({
                 <p className="text-sm text-ink-soft">
                   {data.firstName
                     ? t(
-                        `We found a record for ${data.firstName} ${data.lastName}. We've pre-filled what we could on the next step — just check it over.`,
-                        `Mun sami bayani game da ${data.firstName} ${data.lastName}. Mun riga mun cika abin da za mu iya a mataki na gaba — duba shi kawai.`
+                        `We found a matching record for ${data.firstName} ${data.lastName}. You're ready to generate your ID card.`,
+                        `Mun sami bayani game da ${data.firstName} ${data.lastName} da ya dace. Yanzu za ka iya samar da katin shaidarka.`
                       )
                     : t(
-                        "Your record was found. We've pre-filled what we could on the next step.",
-                        "An sami bayanan ka. Mun riga mun cika abin da za mu iya a mataki na gaba."
+                        "Your record was found. You're ready to generate your ID card.",
+                        "An sami bayanan ka. Yanzu za ka iya samar da katin shaidarka."
                       )}
                 </p>
               </div>
@@ -233,7 +233,7 @@ export function VerificationStep({
         nextType="button"
         onNext={onNext}
         nextDisabled={data.verificationStatus !== "verified"}
-        nextLabel={t("Continue to My Details", "Ci gaba zuwa Bayanana")}
+        nextLabel={t("Generate My ID Card", "Samar da Katin Shaidata")}
       />
     </div>
   );

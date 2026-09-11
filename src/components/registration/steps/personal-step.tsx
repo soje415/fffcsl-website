@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
-import { Sparkles, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 import { FieldWrap, TextInput, SelectInput } from "@/components/registration/field";
 import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
@@ -44,17 +44,6 @@ export function PersonalStep({
 
   return (
     <form onSubmit={handleSubmit}>
-      {data.verificationStatus === "verified" && (
-        <div className="mb-5 flex items-start gap-2 rounded-xl border border-forest/30 bg-forest/5 p-4 text-sm text-forest-dark">
-          <Sparkles size={18} className="mt-0.5 shrink-0" />
-          <p>
-            {t(
-              "We've filled in what we could from your BVN/NIN record below — check it over and correct anything that's wrong.",
-              "Mun cika abin da za mu iya daga bayanan BVN/NIN ɗinka a ƙasa — duba shi ka gyara duk abin da ba daidai ba."
-            )}
-          </p>
-        </div>
-      )}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div className="flex items-center gap-4 sm:col-span-2">
           <button

@@ -10,14 +10,14 @@ import { LanguageToggle } from "@/components/registration/language-toggle";
 import { TokenEntryStep } from "@/components/registration/steps/token-entry-step";
 import { PaymentStep } from "@/components/registration/steps/payment-step";
 import { VerificationStep } from "@/components/registration/steps/verification-step";
-import { PersonalStep } from "@/components/registration/steps/personal-step";
-import { PhoneVerificationStep } from "@/components/registration/steps/phone-verification-step";
-import { AddressFarmStep } from "@/components/registration/steps/address-farm-step";
-import { NextOfKinStep } from "@/components/registration/steps/next-of-kin-step";
-import { ConsentStep } from "@/components/registration/steps/consent-step";
 import { SuccessStep } from "@/components/registration/steps/success-step";
 import { isDemoMode } from "@/lib/demo-mode";
-import { EMPTY_REGISTRATION, type RegistrationData } from "@/types/registration";
+import {
+  EMPTY_REGISTRATION,
+  ID_CARD_STEP_LABELS,
+  ID_CARD_STEP_LABELS_HA,
+  type RegistrationData,
+} from "@/types/registration";
 
 const STORAGE_KEY = "fffcsl-idcard-draft";
 
@@ -99,7 +99,7 @@ function IdCardWizardInner() {
   }
 
   function next() {
-    setStep((s) => Math.min(s + 1, 7));
+    setStep((s) => Math.min(s + 1, 2));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -143,12 +143,7 @@ function IdCardWizardInner() {
   const steps = [
     <PaymentStep key="0" data={data} update={update} onNext={next} onBack={startOver} />,
     <VerificationStep key="1" data={data} update={update} onNext={next} onBack={back} />,
-    <PersonalStep key="2" data={data} update={update} onNext={next} onBack={back} />,
-    <PhoneVerificationStep key="3" data={data} update={update} onNext={next} onBack={back} />,
-    <AddressFarmStep key="4" data={data} update={update} onNext={next} onBack={back} />,
-    <NextOfKinStep key="5" data={data} update={update} onNext={next} onBack={back} />,
-    <ConsentStep key="6" data={data} update={update} onNext={next} onBack={back} />,
-    <SuccessStep key="7" data={data} update={update} onStartNew={startOver} />,
+    <SuccessStep key="2" data={data} update={update} onStartNew={startOver} />,
   ];
 
   return (
@@ -158,7 +153,7 @@ function IdCardWizardInner() {
           {step < steps.length - 1 && (
             <div className="mb-10">
               <WizardHeader onStartOver={startOver} />
-              <Stepper current={step} />
+              <Stepper current={step} labels={ID_CARD_STEP_LABELS} hausaLabels={ID_CARD_STEP_LABELS_HA} />
             </div>
           )}
           <div className="rounded-2xl border border-line bg-white p-6 sm:p-9">
