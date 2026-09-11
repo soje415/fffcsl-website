@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { PageHero } from "@/components/ui/page-hero";
 import { PreRegisterForm } from "@/components/registration/pre-register-form";
 
 export const metadata: Metadata = {
@@ -9,14 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function PreRegisterPage() {
-  return (
-    <>
-      <PageHero
-        eyebrow="Membership Registration"
-        title="Register as an FFFCSL Farmer"
-        description="Fill in your personal details, farm information, and next of kin to get your token. You'll use it to come back, pay the ₦2,000 ID card fee, and verify your identity."
-      />
-      <PreRegisterForm />
-    </>
-  );
+  return <PreRegisterForm />;
 }
