@@ -6,19 +6,18 @@ import {
   CreateBucketCommand,
 } from "@aws-sdk/client-s3";
 
-const BUCKET = process.env.AWS_S3_BUCKET ?? "fffcsl-photos";
+const BUCKET = process.env.R2_BUCKET_NAME ?? "fffcsl-photos";
 
 function client(): S3Client {
-  const endpoint = process.env.AWS_ENDPOINT_URL_S3;
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-  const region = process.env.AWS_REGION ?? "us-east-2";
-  if (!endpoint || !accessKeyId || !secretAccessKey) {
-    throw new Error("S3 storage is not configured.");
+  const accountId = process.env.R2_ACCOUNT_ID;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+  if (!accountId || !accessKeyId || !secretAccessKey) {
+    throw new Error("R2 storage is not configured.");
   }
   return new S3Client({
-    endpoint,
-    region,
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    region: "auto",
     forcePathStyle: true,
     credentials: { accessKeyId, secretAccessKey },
   });
@@ -38,7 +37,7 @@ async function ensureBucket(s3: S3Client) {
 }
 
 /**
- * Upload a passport photo (base64 data URL) to S3 and return its object key.
+ * Upload a passport photo (base64 data URL) to R2 and return its object key.
  */
 export async function uploadPhoto(memberId: string, dataUrl: string): Promise<string> {
   const s3 = client();
@@ -63,7 +62,7 @@ export async function uploadPhoto(memberId: string, dataUrl: string): Promise<st
 }
 
 /**
- * Fetch a stored passport photo back out of S3 for the public verification
+ * Fetch a stored passport photo back out of R2 for the public verification
  * page. Returns null if the key is empty or the object doesn't exist.
  */
 export async function downloadPhoto(
