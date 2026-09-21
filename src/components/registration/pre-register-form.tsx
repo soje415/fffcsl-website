@@ -85,6 +85,17 @@ function PreRegisterFormInner() {
       await submitRegistration({ ...wizard.data, memberId: newToken });
       window.localStorage.removeItem(STORAGE_KEY);
       setToken(newToken);
+      const continueUrl = `${window.location.origin}/membership/id-card?token=${encodeURIComponent(newToken)}`;
+      fetch("/api/termii/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: wizard.data.phone,
+          message: `FFFCSL: Registration received! Continue to get your ID card: ${continueUrl} Your token: ${newToken}`,
+        }),
+      }).catch(() => {
+        /* best-effort; the token and link are also shown and copyable on screen */
+      });
     } catch (err) {
       setError(
         err instanceof Error
