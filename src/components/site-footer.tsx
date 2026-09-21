@@ -93,7 +93,7 @@ export function SiteFooter() {
             <span aria-hidden className="text-cream/30">
               &middot;
             </span>
-            <Link href="/admin" className="text-cream/40 transition-colors hover:text-cream/70">
+            <Link href="/admin" prefetch={false} className="text-cream/40 transition-colors hover:text-cream/70">
               Admin
             </Link>
           </p>
