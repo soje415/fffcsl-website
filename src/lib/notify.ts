@@ -2,11 +2,9 @@ import { after } from "next/server";
 import { checkRateLimit } from "@/lib/db";
 import { isDemoMode } from "@/lib/demo-mode";
 import { sendSms } from "@/lib/providers/termii";
-import { ID_CARD_FEE_NAIRA } from "@/lib/security";
+import { completeMessage, gsmSafe, paymentMessage, registeredMessage, type Lang } from "@/lib/sms-templates";
 
-const SITE_URL = (process.env.SITE_URL ?? "https://fadamacooperative.com").replace(/\/+$/, "");
-
-export type Lang = "en" | "ha";
+export type { Lang };
 
 export function parseLang(value: unknown): Lang {
   return value === "ha" ? "ha" : "en";
@@ -22,7 +20,7 @@ function queue(kind: string, phone: string, message: string) {
   after(async () => {
     try {
       if (!(await checkRateLimit(`sms:${kind}:${phone}`, 5, 24 * 60 * 60))) return;
-      await sendSms(phone, message);
+      await sendSms(phone, gsmSafe(message));
     } catch (err) {
       console.error(`[sms:${kind}] not sent`, err instanceof Error ? err.message : "error");
     }
@@ -30,33 +28,13 @@ function queue(kind: string, phone: string, message: string) {
 }
 
 export function smsRegistered(phone: string, memberId: string, lang: Lang) {
-  const link = `${SITE_URL}/membership/id-card?token=${encodeURIComponent(memberId)}`;
-  queue(
-    "registered",
-    phone,
-    lang === "ha"
-      ? `FFFCSL: An karɓi rajistarka! Ci gaba don samun katin shaidarka: ${link} Lambar shaidarka: ${memberId}`
-      : `FFFCSL: Registration received! Continue to get your ID card: ${link} Your token: ${memberId}`
-  );
+  queue("registered", phone, registeredMessage(memberId, lang));
 }
 
 export function smsPaymentReceived(phone: string, lang: Lang) {
-  const fee = ID_CARD_FEE_NAIRA.toLocaleString("en-NG");
-  queue(
-    "payment",
-    phone,
-    lang === "ha"
-      ? `An karɓi biyan kuɗi! An tabbatar da kuɗin katin shaida na N${fee} na FFFCSL. Na gode.`
-      : `Payment received! Your N${fee} FFFCSL ID card fee is confirmed. Thank you.`
-  );
+  queue("payment", phone, paymentMessage(lang));
 }
 
 export function smsRegistrationComplete(phone: string, firstName: string, memberId: string, lang: Lang) {
-  queue(
-    "complete",
-    phone,
-    lang === "ha"
-      ? `Barka ${firstName}, rajistar FFFCSL ɗinka ta cika. ID na memba: ${memberId}. Ka kiyaye wannan ID.`
-      : `Congratulations ${firstName}, your FFFCSL registration is complete. Member ID: ${memberId}. Keep this ID safe.`
-  );
+  queue("complete", phone, completeMessage(firstName, memberId, lang));
 }
