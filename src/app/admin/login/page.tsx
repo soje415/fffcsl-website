@@ -12,6 +12,10 @@ export default function AdminLoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (pin.length !== 6) {
+      setError("Enter all 6 digits.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -47,15 +51,18 @@ export default function AdminLoginPage() {
               pattern="[0-9]*"
               maxLength={6}
               autoFocus
+              autoComplete="one-time-code"
+              name="admin-pin"
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onInput={(e) => setPin(e.currentTarget.value.replace(/\D/g, "").slice(0, 6))}
               className="w-full rounded-lg border border-line bg-cream-soft px-4 py-3 text-center text-2xl tracking-[0.5em] text-ink outline-none focus:border-forest"
               placeholder="••••••"
             />
             {error ? <p className="text-sm text-terracotta-dark">{error}</p> : null}
             <button
               type="submit"
-              disabled={loading || pin.length !== 6}
+              disabled={loading}
               className="rounded-lg bg-forest px-4 py-2.5 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-50"
             >
               {loading ? "Signing in…" : "Sign In"}
