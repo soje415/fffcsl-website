@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     // Reuse the open invoice rather than creating a new one on every retry.
     if (farmer.checkout_invoice_id) {
       const open = await getPayment(farmer.checkout_invoice_id);
-      if (open && open.member_id === memberId && open.status !== "paid") {
+      if (open && open.member_id === memberId && open.status !== "paid" && open.amount_kobo === ID_CARD_FEE_KOBO) {
         return Response.json({ success: true, invoiceId: farmer.checkout_invoice_id });
       }
     }

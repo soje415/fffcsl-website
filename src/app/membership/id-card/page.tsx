@@ -14,7 +14,7 @@ export default function IdCardPage() {
       <PageHero
         eyebrow="ID Card Registration"
         title="Complete Your FFFCSL ID Card"
-        description="Enter your pre-registration token, pay the ₦2,000 ID card fee, verify your BVN or NIN, and get your official membership ID."
+        description="Enter your pre-registration token, pay the ₦2,500 ID card fee, verify your identity, and get your official membership ID."
       />
       <Suspense fallback={null}>
         <IdCardWizard />

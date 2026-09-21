@@ -12,7 +12,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { USSD_BANKS } from "@/lib/ussd-banks";
 import type { RegistrationData } from "@/types/registration";
 
-const FEE = 2000;
+const FEE = 2500;
 const DEMO = isDemoMode();
 const virtualAccountProvider = DEMO ? mockVirtualAccountProvider : hyparrowVirtualAccountProvider;
 

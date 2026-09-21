@@ -156,8 +156,8 @@ function PreRegisterFormInner() {
                 </h2>
                 <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
                   {t(
-                    "Save this token — you'll need it to continue to ID Card Registration, where you'll pay the ₦2,000 fee and complete your BVN/NIN verification to get your official membership ID card.",
-                    "Ajiye wannan lambar shaida — za ka bukace ta don ci gaba zuwa rajistar katin shaida, inda za ka biya kuɗin ₦2,000 kuma ka kammala tabbatar da BVN/NIN ɗinka don samun katin shaidar zama memba."
+                    "Your registration is complete. Keep this code safe, then proceed to get your ID card.",
+                    "An kammala rajistarka. Ka kiyaye wannan lambar a wuri mai aminci, sannan ka ci gaba don samun katin shaidarka."
                   )}
                 </p>
                 <button

@@ -190,7 +190,7 @@ export default function Home() {
               Pre-register to get your token, then complete ID card
               registration, verify your identity, and get your official
               FFFCSL membership ID &mdash; issued after a one-time
-              &#8358;2,000 processing payment.
+              &#8358;2,500 processing payment.
             </p>
           </Reveal>
           <Reveal delay={0.1}>

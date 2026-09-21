@@ -1,7 +1,7 @@
 import { checkRateLimit } from "@/lib/db";
 
 /** ID card fee, enforced server-side. The client's copy is display-only. */
-export const ID_CARD_FEE_KOBO = 200_000;
+export const ID_CARD_FEE_KOBO = 250_000;
 export const ID_CARD_FEE_NAIRA = ID_CARD_FEE_KOBO / 100;
 
 /** Tokens issued by pre-registration today: FFFCSL/<year>/<9 digits>. */

@@ -30,12 +30,13 @@ export type PaymentRow = {
   member_id: string | null;
   status: string;
   account_number: string;
+  amount_kobo: number;
 };
 
 export async function getPayment(customerId: string): Promise<PaymentRow | null> {
   await ensureSchema();
   const rows = await sql()`
-    SELECT customer_id, member_id, status, COALESCE(account_number, '') AS account_number
+    SELECT customer_id, member_id, status, COALESCE(account_number, '') AS account_number, amount_kobo
     FROM payments WHERE customer_id = ${customerId}
   `;
   return (rows[0] as PaymentRow | undefined) ?? null;
