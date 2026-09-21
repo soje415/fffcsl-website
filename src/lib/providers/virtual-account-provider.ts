@@ -18,7 +18,7 @@ export interface VirtualAccountProvider {
     amount: number;
   }): Promise<VirtualAccount>;
 
-  checkStatus(customerId: string, amount: number): Promise<"pending" | "paid">;
+  checkStatus(customerId: string, amount: number, lang?: "en" | "ha"): Promise<"pending" | "paid">;
 }
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
@@ -57,10 +57,10 @@ export const hyparrowVirtualAccountProvider: VirtualAccountProvider = {
     return data.account;
   },
 
-  async checkStatus(customerId, amount) {
+  async checkStatus(customerId, amount, lang) {
     const data = await postJson<{ success: boolean; paid: boolean }>(
       "/api/hyparrow/virtual-account/status",
-      { customerId, amountKobo: Math.round(amount * 100) }
+      { customerId, amountKobo: Math.round(amount * 100), lang }
     );
     return data.paid ? "paid" : "pending";
   },

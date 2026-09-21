@@ -1,50 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PartyPopper, Printer, UserPlus } from "lucide-react";
 import { IdCard } from "@/components/id-card";
 import { useLanguage } from "@/components/registration/language";
-import { otpProvider } from "@/lib/providers/otp-provider";
-import { submitRegistration } from "@/lib/providers/registration-provider";
 import type { RegistrationData } from "@/types/registration";
 
 export function SuccessStep({
   data,
-  update,
   onStartNew,
 }: {
   data: RegistrationData;
-  update: (patch: Partial<RegistrationData>) => void;
   onStartNew: () => void;
 }) {
   const { lang } = useLanguage();
-  const sentRef = useRef(false);
-
-  useEffect(() => {
-    if (sentRef.current) return;
-    sentRef.current = true;
-
-    // Persist the completed registration (idempotent on member_id).
-    submitRegistration(data).catch(() => {
-      /* do not block the success screen if persistence fails */
-    });
-
-    // Fire the welcome SMS once.
-    if (data.welcomeSmsSent || !data.phone) return;
-    const message =
-      lang === "ha"
-        ? `Barka ${data.firstName}, rajistar FFFCSL ɗinka ta cika. ID na memba: ${data.memberId}. Ka kiyaye wannan ID.`
-        : `Congratulations ${data.firstName}, your FFFCSL registration is complete. Member ID: ${data.memberId}. Keep this ID safe.`;
-    otpProvider
-      .sendSms(data.phone, message)
-      .then(() => update({ welcomeSmsSent: true }))
-      .catch(() => {
-        /* do not block the success screen if SMS fails */
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <motion.div

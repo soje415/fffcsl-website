@@ -143,7 +143,7 @@ function IdCardWizardInner() {
   const steps = [
     <PaymentStep key="0" data={data} update={update} onNext={next} onBack={startOver} />,
     <VerificationStep key="1" data={data} update={update} onNext={next} onBack={back} />,
-    <SuccessStep key="2" data={data} update={update} onStartNew={startOver} />,
+    <SuccessStep key="2" data={data} onStartNew={startOver} />,
   ];
 
   return (

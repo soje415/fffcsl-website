@@ -6,6 +6,7 @@ import { UserRound } from "lucide-react";
 import { FieldWrap, TextInput, SelectInput } from "@/components/registration/field";
 import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
+import { photoToJpegDataUrl } from "@/lib/image";
 import type { RegistrationData } from "@/types/registration";
 
 export function PersonalStep({
@@ -24,12 +25,22 @@ export function PersonalStep({
   const fileRef = useRef<HTMLInputElement>(null);
   const fromKyc = data.photoSource === "kyc";
 
-  function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => update({ photoDataUrl: reader.result as string, photoSource: "upload" });
-    reader.readAsDataURL(file);
+    try {
+      const photoDataUrl = await photoToJpegDataUrl(file);
+      setError("");
+      update({ photoDataUrl, photoSource: "upload" });
+    } catch {
+      setError(
+        t(
+          "That photo couldn't be used. Choose a JPEG, PNG or WebP image.",
+          "Ba a iya amfani da wannan hoton ba. Zaɓi hoton JPEG, PNG ko WebP."
+        )
+      );
+    }
   }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -86,7 +97,7 @@ export function PersonalStep({
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               onChange={handlePhoto}
               className="hidden"
             />

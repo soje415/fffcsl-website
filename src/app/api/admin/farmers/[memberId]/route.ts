@@ -1,4 +1,5 @@
 import { ensureSchema, sql } from "@/lib/db";
+import { MEMBER_ID_RE, serverError } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,8 +10,8 @@ export async function GET(
 ) {
   const { memberId } = await params;
   const id = decodeURIComponent(memberId ?? "").trim();
-  if (!id) {
-    return Response.json({ success: false, error: "Member ID is required." }, { status: 400 });
+  if (!id || !MEMBER_ID_RE.test(id)) {
+    return Response.json({ success: false, error: "Farmer not found." }, { status: 404 });
   }
 
   try {
@@ -28,14 +29,16 @@ export async function GET(
       FROM payments WHERE member_id = ${id} ORDER BY created_at DESC
     `;
 
-    return Response.json({
-      success: true,
-      farmer: rows[0],
-      crops: (cropRows as Array<{ crop: string }>).map((c) => c.crop),
-      payments: paymentRows,
-    });
+    return Response.json(
+      {
+        success: true,
+        farmer: rows[0],
+        crops: (cropRows as Array<{ crop: string }>).map((c) => c.crop),
+        payments: paymentRows,
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not load this farmer.";
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return serverError("admin-farmer", err, "Could not load this farmer.");
   }
 }

@@ -1,14 +1,14 @@
 import type { IdentityRecord } from "@/lib/providers/identity-verifier";
 import type { RegistrationData } from "@/types/registration";
 
-function normalizeGender(value?: string): RegistrationData["gender"] {
+export function normalizeGender(value?: string): RegistrationData["gender"] {
   const v = (value ?? "").trim().toLowerCase();
   if (v === "m" || v === "male") return "Male";
   if (v === "f" || v === "female") return "Female";
   return "";
 }
 
-function normalizeDob(value?: string): string {
+export function normalizeDob(value?: string): string {
   const v = (value ?? "").trim();
   if (!v) return "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;

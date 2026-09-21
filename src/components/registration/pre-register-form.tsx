@@ -41,7 +41,7 @@ function readDraft(): WizardState {
 }
 
 function PreRegisterFormInner() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [wizard, setWizard] = useState<WizardState>({ step: 0, data: EMPTY_REGISTRATION });
   const [hydrated, setHydrated] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -82,20 +82,9 @@ function PreRegisterFormInner() {
     setSubmitting(true);
     const newToken = generateToken();
     try {
-      await submitRegistration({ ...wizard.data, memberId: newToken });
+      await submitRegistration({ ...wizard.data, memberId: newToken }, lang);
       window.localStorage.removeItem(STORAGE_KEY);
       setToken(newToken);
-      const continueUrl = `${window.location.origin}/membership/id-card?token=${encodeURIComponent(newToken)}`;
-      fetch("/api/termii/sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: wizard.data.phone,
-          message: `FFFCSL: Registration received! Continue to get your ID card: ${continueUrl} Your token: ${newToken}`,
-        }),
-      }).catch(() => {
-        /* best-effort; the token and link are also shown and copyable on screen */
-      });
     } catch (err) {
       setError(
         err instanceof Error

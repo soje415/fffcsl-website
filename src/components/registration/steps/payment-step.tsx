@@ -8,8 +8,6 @@ import { SelectInput } from "@/components/registration/field";
 import { useLanguage } from "@/components/registration/language";
 import { hyparrowVirtualAccountProvider, mockVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
 import { hyparrowCheckoutProvider } from "@/lib/providers/checkout-provider";
-import { otpProvider } from "@/lib/providers/otp-provider";
-import { submitRegistration } from "@/lib/providers/registration-provider";
 import { isDemoMode } from "@/lib/demo-mode";
 import { USSD_BANKS } from "@/lib/ussd-banks";
 import type { RegistrationData } from "@/types/registration";
@@ -50,28 +48,6 @@ export function PaymentStep({
 
   const method: Method = data.paymentMethod || "bankTransfer";
 
-  function sendPaymentSms() {
-    if (data.paymentSmsSent || !data.phone) return;
-    const message =
-      lang === "ha"
-        ? `An karɓi biyan kuɗi! An tabbatar da kuɗin katin shaida na N${FEE.toLocaleString()} na FFFCSL. Na gode.`
-        : `Payment received! Your N${FEE.toLocaleString()} FFFCSL ID card fee is confirmed. Thank you.`;
-    otpProvider
-      .sendSms(data.phone, message)
-      .then(() => update({ paymentSmsSent: true }))
-      .catch(() => {
-        /* SMS is best-effort; do not block confirmation */
-      });
-  }
-
-  // Persists payment progress incrementally so a farmer can resume the ID
-  // card flow later, by token, from another device without losing it.
-  function saveProgress(patch: Partial<RegistrationData>) {
-    submitRegistration({ ...data, ...patch }).catch(() => {
-      /* best-effort; the local wizard state is still authoritative for this session */
-    });
-  }
-
   async function generateAccount() {
     setError("");
     setGenerating(true);
@@ -93,7 +69,6 @@ export function PaymentStep({
         virtualAccountCustomerId: account.customerId,
       };
       update(patch);
-      saveProgress(patch);
     } catch (err) {
       setError(
         err instanceof Error
@@ -112,11 +87,11 @@ export function PaymentStep({
     try {
       const status = await virtualAccountProvider.checkStatus(
         data.virtualAccountCustomerId,
-        FEE
+        FEE,
+        lang
       );
       if (status === "paid") {
         update({ paymentStatus: "paid" });
-        sendPaymentSms();
       } else if (!silent) {
         setError(
           t(
@@ -153,7 +128,6 @@ export function PaymentStep({
       customerEmail: data.email,
     });
     update({ checkoutInvoiceId: invoiceId });
-    saveProgress({ checkoutInvoiceId: invoiceId });
     return invoiceId;
   }
 
@@ -169,7 +143,6 @@ export function PaymentStep({
       const ussdCode = await hyparrowCheckoutProvider.generateUssd(invoiceId, bankCode);
       const patch = { paymentMethod: "ussd" as const, ussdCode, ussdBankCode: bankCode };
       update(patch);
-      saveProgress(patch);
     } catch (err) {
       setError(
         err instanceof Error
@@ -187,7 +160,6 @@ export function PaymentStep({
     try {
       const invoiceId = await ensureInvoice();
       update({ paymentMethod: "opay" });
-      saveProgress({ paymentMethod: "opay" });
       const redirectUrl = await hyparrowCheckoutProvider.initOpay(invoiceId);
       window.location.href = redirectUrl;
     } catch (err) {
@@ -205,10 +177,9 @@ export function PaymentStep({
     pollingRef.current = true;
     if (!silent) setChecking(true);
     try {
-      const paid = await hyparrowCheckoutProvider.checkStatus(data.checkoutInvoiceId);
+      const paid = await hyparrowCheckoutProvider.checkStatus(data.checkoutInvoiceId, lang);
       if (paid) {
         update({ paymentStatus: "paid" });
-        sendPaymentSms();
       } else if (!silent) {
         setError(
           t(

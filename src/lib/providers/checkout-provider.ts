@@ -45,10 +45,10 @@ export const hyparrowCheckoutProvider = {
     return data.ussdCode;
   },
 
-  async checkStatus(invoiceId: string) {
+  async checkStatus(invoiceId: string, lang?: "en" | "ha") {
     const data = await postJson<{ success: boolean; paid: boolean }>(
       "/api/hyparrow/checkout/status",
-      { invoiceId }
+      { invoiceId, lang }
     );
     return data.paid;
   },

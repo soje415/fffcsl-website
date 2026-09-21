@@ -79,7 +79,31 @@ export async function ensureSchema() {
     count INTEGER NOT NULL DEFAULT 0,
     window_start TIMESTAMPTZ NOT NULL DEFAULT now()
   )`;
+  await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`;
+  await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS consent_at TIMESTAMPTZ`;
+  await sql()`ALTER TABLE payments ADD COLUMN IF NOT EXISTS account_name TEXT DEFAULT ''`;
+  await sql()`CREATE INDEX IF NOT EXISTS farmers_nin_idx ON farmers (nin) WHERE nin <> ''`;
+  await sql()`CREATE INDEX IF NOT EXISTS farmers_bvn_idx ON farmers (bvn) WHERE bvn <> ''`;
+  await sql()`CREATE INDEX IF NOT EXISTS farmers_created_idx ON farmers (created_at DESC)`;
+  await sql()`CREATE INDEX IF NOT EXISTS payments_member_idx ON payments (member_id)`;
+  await sql()`CREATE TABLE IF NOT EXISTS admin_audit (
+    id BIGSERIAL PRIMARY KEY,
+    at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ip TEXT DEFAULT '',
+    action TEXT NOT NULL,
+    detail TEXT DEFAULT ''
+  )`;
   schemaReady = true;
+}
+
+/** Best-effort audit trail for admin sign-ins and data exports; never blocks the request. */
+export async function logAdminEvent(action: string, ip: string, detail = ""): Promise<void> {
+  try {
+    await ensureSchema();
+    await sql()`INSERT INTO admin_audit (ip, action, detail) VALUES (${ip.slice(0, 64)}, ${action}, ${detail.slice(0, 300)})`;
+  } catch (err) {
+    console.error("[admin-audit] failed to record event", err instanceof Error ? err.message : "error");
+  }
 }
 
 /** True once a 'paid' payment row is linked to this member, across any payment method. */
@@ -117,5 +141,30 @@ export async function checkRateLimit(
     RETURNING count
   `;
   const count = Number((rows[0] as { count: number } | undefined)?.count ?? 0);
+
+  // Housekeeping: expired windows are dead weight, so occasionally sweep them.
+  if (Math.random() < 0.02) {
+    sql()`DELETE FROM rate_limits WHERE window_start < now() - interval '2 days'`.catch(() => {});
+  }
   return count <= limit;
+}
+
+/** True while `key` is still under `limit` inside the window — reads only, never counts a hit. */
+export async function peekRateLimit(
+  key: string,
+  limit: number,
+  windowSeconds: number
+): Promise<boolean> {
+  await ensureSchema();
+  const rows = await sql()`
+    SELECT count FROM rate_limits
+    WHERE key = ${key} AND window_start >= now() - make_interval(secs => ${windowSeconds})
+  `;
+  const count = Number((rows[0] as { count: number } | undefined)?.count ?? 0);
+  return count < limit;
+}
+
+export async function clearRateLimit(key: string): Promise<void> {
+  await ensureSchema();
+  await sql()`DELETE FROM rate_limits WHERE key = ${key}`;
 }

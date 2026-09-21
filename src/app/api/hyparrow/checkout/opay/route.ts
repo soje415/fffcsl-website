@@ -1,34 +1,46 @@
-import { initOpayCheckout, type HyparrowError } from "@/lib/providers/hyparrow";
+import { initOpayCheckout } from "@/lib/providers/hyparrow";
+import { ensureSchema, sql } from "@/lib/db";
+import { getPayment } from "@/lib/payments";
+import {
+  badRequest,
+  clientIp,
+  crossOriginBlocked,
+  notFound,
+  providerError,
+  rateLimit,
+  readJson,
+  serverError,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function errorResponse(err: unknown) {
-  const e = err as HyparrowError;
-  const status = e.status ?? 500;
-  return Response.json(
-    {
-      success: false,
-      code: e.code ?? "INTERNAL_ERROR",
-      error: e.message ?? "Unexpected checkout error",
-    },
-    { status }
-  );
-}
-
 export async function POST(req: Request) {
-  try {
-    const body = (await req.json()) as { invoiceId?: string };
-    if (!body.invoiceId) {
-      return Response.json(
-        { success: false, code: "VALIDATION_ERROR", error: "invoiceId is required." },
-        { status: 400 }
-      );
-    }
+  const blocked = crossOriginBlocked(req);
+  if (blocked) return blocked;
 
-    const { redirectUrl } = await initOpayCheckout(body.invoiceId);
+  try {
+    const body = await readJson(req, 2048);
+    if (body.error) return body.error;
+
+    const invoiceId = String(body.data.invoiceId ?? "").trim();
+    if (!invoiceId || invoiceId.length > 100) return badRequest("invoiceId is required.");
+
+    const limited = await rateLimit("opay", clientIp(req), 20, 3600);
+    if (limited) return limited;
+
+    // Only invoices we issued, and only while still unpaid.
+    const payment = await getPayment(invoiceId);
+    if (!payment || !payment.member_id || payment.status === "paid") return notFound("Invoice not found.");
+
+    const { redirectUrl } = await initOpayCheckout(invoiceId);
+
+    await ensureSchema();
+    await sql()`UPDATE farmers SET payment_method = 'opay' WHERE member_id = ${payment.member_id}`;
+
     return Response.json({ success: true, redirectUrl });
   } catch (err) {
-    return errorResponse(err);
+    if ((err as { status?: number })?.status) return providerError("opay", err);
+    return serverError("opay", err, "Could not start OPay checkout.");
   }
 }

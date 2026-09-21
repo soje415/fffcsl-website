@@ -8,7 +8,6 @@ import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
 import { hyparrowIdentityVerifier, mockIdentityVerifier } from "@/lib/providers/identity-verifier";
 import { autofillFromKyc } from "@/lib/kyc-autofill";
-import { submitRegistration } from "@/lib/providers/registration-provider";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { KycType, RegistrationData } from "@/types/registration";
 
@@ -25,7 +24,7 @@ export function VerificationStep({
   onNext: () => void;
   onBack?: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState("");
   const [reason, setReason] = useState("");
@@ -49,6 +48,7 @@ export function VerificationStep({
         type: data.kycType,
         identifier: data.kycNumber,
         memberId: data.memberId,
+        lang,
       });
       if (result.status === "verified") {
         const patch: Partial<RegistrationData> = {
@@ -57,9 +57,6 @@ export function VerificationStep({
           ...(result.record ? autofillFromKyc(result.record, data) : {}),
         };
         update(patch);
-        submitRegistration({ ...data, ...patch }).catch(() => {
-          /* best-effort; resuming by token will just re-run KYC if this didn't save */
-        });
       } else {
         update({ verificationStatus: "mismatch" });
         setReason(

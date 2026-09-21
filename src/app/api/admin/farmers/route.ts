@@ -1,5 +1,6 @@
 import { ensureSchema, sql } from "@/lib/db";
 import { buildFarmerFilter } from "@/lib/admin-filters";
+import { serverError } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,8 +12,12 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const { where, params } = buildFarmerFilter(url.searchParams);
 
-    const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
-    const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get("pageSize") ?? "25") || 25));
+    const int = (name: string, fallback: number) => {
+      const n = Number(url.searchParams.get(name));
+      return Number.isInteger(n) && n > 0 ? n : fallback;
+    };
+    const page = Math.min(int("page", 1), 100_000);
+    const pageSize = Math.min(int("pageSize", 25), 100);
     const offset = (page - 1) * pageSize;
 
     const limitIdx = params.length + 1;
@@ -48,7 +53,8 @@ export async function GET(req: Request) {
       []
     );
 
-    return Response.json({
+    return Response.json(
+      {
       success: true,
       farmers: rows,
       total,
@@ -58,9 +64,10 @@ export async function GET(req: Request) {
         ...(summaryRows[0] as Record<string, number>),
         paid: (paidCountRows[0] as { paid: number } | undefined)?.paid ?? 0,
       },
-    });
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Could not load farmers.";
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return serverError("admin-farmers", err, "Could not load farmers.");
   }
 }
