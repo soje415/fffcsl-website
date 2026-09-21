@@ -1,6 +1,7 @@
 import { verifyIdentity, type HyparrowError } from "@/lib/providers/hyparrow";
 import { ensureSchema, hasConfirmedPayment, sql } from "@/lib/db";
 import { normalizeDob, normalizeGender } from "@/lib/kyc-autofill";
+import { registryNameMatches } from "@/lib/kyc-match";
 import { parseLang, smsRegistrationComplete } from "@/lib/notify";
 import {
   MEMBER_ID_RE,
@@ -50,11 +51,13 @@ export async function POST(req: Request) {
     await ensureSchema();
     const db = sql();
     const rows = await db`
-      SELECT first_name, phone, nin, bvn, verification_status FROM farmers WHERE member_id = ${memberId}
+      SELECT first_name, last_name, other_names, phone, nin, bvn, verification_status FROM farmers WHERE member_id = ${memberId}
     `;
     if (rows.length === 0) return notFound("We couldn't find that token.");
     const farmer = rows[0] as {
       first_name: string;
+      last_name: string;
+      other_names: string;
       phone: string;
       nin: string;
       bvn: string;
@@ -115,11 +118,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // Failed lookups are recorded server-side so support can see who is stuck
+    // (the admin dashboard counts and filters this status).
+    const markMismatch = () =>
+      db`UPDATE farmers SET verification_status = 'mismatch' WHERE member_id = ${memberId} AND verification_status <> 'verified'`;
+
     let outcome;
     try {
       outcome = await verifyIdentity({ type, identifier });
     } catch (err) {
       if ((err as HyparrowError).code === "RECORD_NOT_FOUND") {
+        await markMismatch();
         return Response.json({
           success: true,
           status: "not_found",
@@ -130,7 +139,28 @@ export async function POST(req: Request) {
     }
 
     if (outcome.status !== "verified" || !outcome.record) {
+      await markMismatch();
       return Response.json({ success: true, ...outcome });
+    }
+
+    // Ownership check: the registry record must be for the person who
+    // registered. Otherwise a paid token could be used to pull up anybody's
+    // NIN/BVN record (name, date of birth, photo). Nothing from the record is
+    // shown or saved unless the names line up.
+    if (
+      !registryNameMatches(
+        { firstName: farmer.first_name, lastName: farmer.last_name, otherNames: farmer.other_names },
+        outcome.record
+      )
+    ) {
+      await markMismatch();
+      console.warn(`[kyc] registry name did not match registration for ${memberId}`);
+      return Response.json({
+        success: true,
+        status: "not_found",
+        reason:
+          "The details on that number don't match the name you registered with. Check the number, or contact support if your name is spelled differently on it.",
+      });
     }
 
     // The registry record is authoritative: it replaces whatever was typed at

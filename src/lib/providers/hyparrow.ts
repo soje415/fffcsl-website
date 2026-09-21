@@ -96,6 +96,11 @@ export async function verifyIdentity(input: {
   const path = input.type === "bvn" ? "/kyc/identity/bvn/basic" : "/kyc/identity/nin";
   const body = input.type === "bvn" ? { bvn: input.identifier } : { nin: input.identifier };
   const payload = await request(path, body);
+  // Field names only, never values: shows which registry fields Hyparrow
+  // returns (e.g. whether a phone number is available for stronger checks).
+  const envelope = payload?.data as Record<string, unknown> | undefined;
+  const raw = (envelope?.data as Record<string, unknown> | undefined) ?? envelope;
+  console.info("[kyc] registry response fields:", raw && typeof raw === "object" ? Object.keys(raw).join(",") : "none");
   const record = extractIdentity(payload);
   if (!record || !(record.firstName || record.lastName)) {
     return { status: "not_found", reason: "No identity record was returned for that number." };
