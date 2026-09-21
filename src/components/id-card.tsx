@@ -45,7 +45,7 @@ export function IdCardFront({
   const verifyUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/verify/${encodeURIComponent(data.memberId)}`
-      : `https://fffcsl.org.ng/verify/${encodeURIComponent(data.memberId)}`;
+      : `https://fadamacooperative.com/verify/${encodeURIComponent(data.memberId)}`;
 
   const defaultExpires = new Date();
   defaultExpires.setFullYear(defaultExpires.getFullYear() + 2);
@@ -168,7 +168,7 @@ export function IdCardFront({
             Registered: Federal Dept. of Cooperatives, Nigeria
           </p>
           <p className="text-[6.5px] font-medium text-cream/70">
-            fffcsl.org.ng
+            fadamacooperative.com
           </p>
         </div>
       </div>
@@ -229,7 +229,6 @@ function IdCardBack({ data }: { data: RegistrationData }) {
 
         <div className="relative mt-auto flex items-end justify-between">
           <div className="text-[7px] text-cream/70">
-            <p>info@fffcsl.org.ng</p>
             <p>+234 (0) 000 000 0000</p>
           </div>
           <div className="flex items-center gap-3">
