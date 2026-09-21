@@ -88,7 +88,15 @@ export function SiteFooter() {
             &copy; {new Date().getFullYear()} Federation of Fadama Farmers
             Cooperative Society Ltd. All rights reserved.
           </p>
-          <p>Registered under the Federal Department of Cooperatives, Nigeria.</p>
+          <p className="flex items-center gap-2">
+            <span>Registered under the Federal Department of Cooperatives, Nigeria.</span>
+            <span aria-hidden className="text-cream/30">
+              &middot;
+            </span>
+            <Link href="/admin" className="text-cream/40 transition-colors hover:text-cream/70">
+              Admin
+            </Link>
+          </p>
         </div>
       </div>
     </footer>
