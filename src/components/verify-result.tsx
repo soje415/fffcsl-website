@@ -93,7 +93,6 @@ export function VerifyResult({ memberId }: { memberId: string }) {
                 </div>
                 <IdCardFront
                   data={cardData}
-                  memberSince={member?.memberSince}
                   expires={member ? new Date(member.validTill) : undefined}
                 />
               </div>

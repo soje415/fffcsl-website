@@ -35,11 +35,9 @@ function SecurityPattern() {
 
 export function IdCardFront({
   data,
-  memberSince,
   expires,
 }: {
   data: RegistrationData;
-  memberSince?: number;
   expires?: Date;
 }) {
   const verifyUrl =
@@ -50,14 +48,12 @@ export function IdCardFront({
   const defaultExpires = new Date();
   defaultExpires.setFullYear(defaultExpires.getFullYear() + 2);
   const resolvedExpires = expires ?? defaultExpires;
-  const resolvedMemberSince = memberSince ?? new Date().getFullYear();
 
   const fields = [
     { label: "ID", value: data.memberId, mono: true },
-    { label: "DOB / Sex", value: `${formatDob(data.dob)} · ${genderAbbrev(data.gender)}` },
+    { label: "DOB", value: formatDob(data.dob) },
+    { label: "Sex", value: genderAbbrev(data.gender) },
     { label: "Chapter", value: `${data.state || "—"} · ${data.lga || "—"}` },
-    { label: "Commodity", value: data.crops.join(", ") || "—" },
-    { label: "Member Since", value: String(resolvedMemberSince) },
   ];
 
   return (
@@ -82,7 +78,7 @@ export function IdCardFront({
             <p className="text-[13px] font-extrabold tracking-wide text-cream">
               FFFCSL
             </p>
-            <p className="truncate text-[6.5px] tracking-wide text-cream/70">
+            <p className="text-[6.5px] leading-snug tracking-wide text-cream/70">
               FEDERATION OF FADAMA FARMERS COOPERATIVE SOCIETY LTD.
             </p>
           </div>
@@ -94,23 +90,23 @@ export function IdCardFront({
         <div className="relative flex flex-1 items-stretch">
           <SecurityPattern />
 
-          <div className="relative flex w-[86px] shrink-0 items-stretch justify-center border-r border-cream/15 bg-black/10 p-2">
-            <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-sm border-2 border-cream/70 bg-cream/10">
+          <div className="relative flex w-[86px] shrink-0 items-center justify-center border-r border-cream/15 bg-black/10 p-2">
+            <div className="flex h-[84px] w-[68px] items-center justify-center overflow-hidden rounded-sm border-2 border-cream/70 bg-cream/10">
               {data.photoDataUrl ? (
                 <Image
                   src={data.photoDataUrl}
                   alt=""
-                  width={70}
-                  height={130}
+                  width={68}
+                  height={84}
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <UserRound size={30} className="text-cream/30" />
+                <UserRound size={28} className="text-cream/30" />
               )}
             </div>
           </div>
 
-          <div className="relative flex min-w-0 flex-1 flex-col justify-between px-3 py-2 text-left">
+          <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-3 px-3 py-2 text-left">
             {data.photoDataUrl && (
               <div
                 aria-hidden
@@ -229,30 +225,13 @@ function IdCardBack({ data }: { data: RegistrationData }) {
 
         <div className="relative mt-auto flex items-end justify-between">
           <div className="text-[7px] text-cream/70">
-            <p>+234 (0) 000 000 0000</p>
+            <p>+234 (0) 904 324 0455</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="h-5 w-16 border-b border-cream/40" />
-              <p className="mt-0.5 text-[6px] text-cream/60">
-                Authorized Signature
-              </p>
-            </div>
-            <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-center shadow-[inset_0_0_6px_rgba(0,0,0,0.35)]"
-              style={{
-                background:
-                  "conic-gradient(from 200deg, #f5c451, #8fd9c4, #f5c451, #b48ff0, #f5c451)",
-              }}
-            >
-              <span className="rounded-full bg-forest-dark/85 px-1 py-1.5 text-[5px] font-bold uppercase leading-tight text-amber">
-                FFFCSL
-                <br />
-                Official
-                <br />
-                Seal
-              </span>
-            </div>
+          <div className="text-right">
+            <div className="h-5 w-16 border-b border-cream/40" />
+            <p className="mt-0.5 text-[6px] text-cream/60">
+              Authorized Signature
+            </p>
           </div>
         </div>
       </div>

@@ -40,10 +40,7 @@ export default function ContactPage() {
               <div className="flex items-start gap-3">
                 <Phone size={18} className="mt-0.5 shrink-0 text-forest" />
                 <p className="text-sm text-ink-soft">
-                  +234 (0) 000 000 0000
-                  <span className="mt-1 block text-xs text-ink-soft/70">
-                    (Placeholder &mdash; to be confirmed)
-                  </span>
+                  +234 (0) 904 324 0455
                 </p>
               </div>
             </div>
