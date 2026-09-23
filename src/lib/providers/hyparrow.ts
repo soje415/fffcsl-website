@@ -207,8 +207,11 @@ export async function createVirtualAccount(input: {
 }
 
 export async function checkVirtualAccountPaid(customerId: string, amountKobo: number): Promise<boolean> {
+  // On a busy registration day many farmers' transfers complete close
+  // together; too small a limit here lets an older (still-unconfirmed)
+  // payment scroll off the page before its check or webhook retry runs.
   const payload = await request(
-    `/transactions?type=virtual_account&status=completed&limit=20`,
+    `/transactions?type=virtual_account&status=completed&limit=100`,
     undefined,
     "GET"
   );
