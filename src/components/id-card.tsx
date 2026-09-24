@@ -3,6 +3,7 @@ import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { UserRound } from "lucide-react";
 import logoIcon from "@/assets/brand/logo-icon.jpeg";
+import signatureImg from "@/assets/brand/signature.png";
 import type { RegistrationData } from "@/types/registration";
 
 function formatDob(dob: string): string {
@@ -228,7 +229,12 @@ function IdCardBack({ data }: { data: RegistrationData }) {
             <p>+234 (0) 904 324 0455</p>
           </div>
           <div className="text-right">
-            <div className="h-5 w-16 border-b border-cream/40" />
+            <Image
+              src={signatureImg}
+              alt=""
+              className="ml-auto h-7 w-16 object-contain object-bottom"
+            />
+            <div className="h-px w-16 bg-cream/40" />
             <p className="mt-0.5 text-[6px] text-cream/60">
               Authorized Signature
             </p>
