@@ -189,7 +189,10 @@ export async function createVirtualAccount(input: {
     };
   }
 
-  const bankCode = process.env.HYPARROW_VA_BANK_CODE ?? "035";
+  // Hyparrow now takes provider names (WEMA, FBP, 9PSB, ...), not NIP codes;
+  // "035" (Wema) is still what older env configs hold.
+  const configured = process.env.HYPARROW_VA_BANK_CODE;
+  const bankCode = !configured || configured === "035" ? "WEMA" : configured;
   const vaPayload = await request("/customers/virtual-account/custom", {
     customerId,
     bankCode,
