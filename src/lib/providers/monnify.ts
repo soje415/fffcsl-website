@@ -140,7 +140,7 @@ export async function createReservedAccount(input: {
     // A retry after our own DB write failed on a previous attempt would
     // otherwise dead-end here, since Monnify already holds this reference.
     const e = err as MonnifyError;
-    if (e.status === 400 && /already exist|duplicate/i.test(e.message)) {
+    if ((e.status === 400 || e.status === 422) && /already exist|duplicate|same reference/i.test(e.message)) {
       return getReservedAccount(input.accountReference);
     }
     throw err;

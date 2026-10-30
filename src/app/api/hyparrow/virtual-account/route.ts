@@ -22,6 +22,8 @@ type FarmerRow = {
   phone: string;
   dob: string;
   residential_address: string;
+  bvn: string;
+  other_names: string;
   virtual_account_number: string;
   virtual_account_bank: string;
   virtual_account_customer_id: string;
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
     await ensureSchema();
     const db = sql();
     const rows = await db`
-      SELECT first_name, last_name, email, phone, dob, residential_address,
+      SELECT first_name, last_name, other_names, bvn, email, phone, dob, residential_address,
              virtual_account_number, virtual_account_bank, virtual_account_customer_id
       FROM farmers WHERE member_id = ${memberId}
     `;
@@ -80,6 +82,14 @@ export async function POST(req: Request) {
       }
     }
 
+    // Hyparrow now needs a BVN to assign an account; it is checked against the names.
+    if (!/^\d{11}$/.test(farmer.bvn ?? "")) {
+      return Response.json(
+        { success: false, error: "A valid 11-digit BVN is needed to create a bank transfer account. Use another payment method." },
+        { status: 400 }
+      );
+    }
+
     // Email became optional at registration, but Hyparrow needs one per customer.
     const serial = memberId.split("/").pop() ?? memberId;
     const email = farmer.email || `member-${serial}@fadamacooperative.com`;
@@ -91,6 +101,8 @@ export async function POST(req: Request) {
       phoneNumber: farmer.phone,
       dateOfBirth: farmer.dob || undefined,
       address: farmer.residential_address || undefined,
+      bvn: farmer.bvn,
+      middleName: farmer.other_names || undefined,
     });
 
     // If we can't record it, don't hand out an account we can't track: a

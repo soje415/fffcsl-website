@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { checkVirtualAccountPaid, getCheckoutStatus } from "@/lib/providers/hyparrow";
 import { getPayment, markPaymentPaid } from "@/lib/payments";
+import { ensureSchema, sql } from "@/lib/db";
 import { ID_CARD_FEE_KOBO } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -40,6 +41,32 @@ export async function POST(req: Request) {
   }
 
   const customerId = typeof event.data?.customerId === "string" ? event.data.customerId : undefined;
+
+  // A customer moved to a new virtual account: show payers the new number from
+  // now on. The old one keeps crediting, and the customerId is unchanged, so
+  // confirmation is unaffected.
+  const newNumber = typeof event.data?.accountNumber === "string" ? event.data.accountNumber : "";
+  if (event.event === "customer.account.migrated" && (customerId ?? (event.data?.id as string | undefined)) && newNumber) {
+    const id = (customerId ?? event.data?.id) as string;
+    try {
+      await ensureSchema();
+      const bank = typeof event.data?.bankName === "string" ? event.data.bankName : "";
+      const name = typeof event.data?.accountName === "string" ? event.data.accountName : "";
+      await sql()`
+        UPDATE payments SET account_number = ${newNumber},
+          bank_name = COALESCE(NULLIF(${bank}, ''), bank_name),
+          account_name = COALESCE(NULLIF(${name}, ''), account_name)
+        WHERE customer_id = ${id} AND status <> 'paid'`;
+      await sql()`
+        UPDATE farmers SET virtual_account_number = ${newNumber},
+          virtual_account_bank = COALESCE(NULLIF(${bank}, ''), virtual_account_bank)
+        WHERE virtual_account_customer_id = ${id}`;
+    } catch (err) {
+      console.error("[hyparrow-webhook] could not record migrated account", err instanceof Error ? err.message : "error");
+      return Response.json({ success: false }, { status: 500 });
+    }
+    return Response.json({ success: true });
+  }
   if (customerId && event.event === "customer.transaction.completed") {
     try {
       const payment = await getPayment(customerId);

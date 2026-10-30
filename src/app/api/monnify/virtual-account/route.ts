@@ -86,7 +86,11 @@ export async function POST(req: Request) {
     }
 
     const serial = memberId.split("/").pop() ?? memberId;
-    const email = farmer.email || `member-${serial}@fadamacooperative.com`;
+    // Monnify allows one reserved account per customer, matched on email and
+    // BVN. Applicants often share an email or reuse a BVN, so the account is
+    // keyed to a per-member address instead and no BVN is sent; their real
+    // contact details stay in our own records.
+    const email = `member-${serial}@fadamacooperative.com`;
     const accountName = `${farmer.first_name} ${farmer.last_name}`.trim() || "FFFCSL Member";
 
     const account = await createReservedAccount({
@@ -94,7 +98,6 @@ export async function POST(req: Request) {
       accountName,
       customerEmail: email,
       customerName: accountName,
-      bvn: farmer.bvn || undefined,
     });
 
     // If we can't record it, don't hand out an account we can't track: a

@@ -148,6 +148,8 @@ export async function createVirtualAccount(input: {
   phoneNumber: string;
   dateOfBirth?: string;
   address?: string;
+  bvn: string;
+  middleName?: string;
 }): Promise<VirtualAccount> {
   let customerId: string | undefined;
   let existing: Record<string, unknown> | undefined;
@@ -189,19 +191,30 @@ export async function createVirtualAccount(input: {
     };
   }
 
-  // Hyparrow now takes provider names (WEMA, FBP, 9PSB, ...), not NIP codes;
-  // "035" (Wema) is still what older env configs hold.
-  const configured = process.env.HYPARROW_VA_BANK_CODE;
-  const bankCode = !configured || configured === "035" ? "WEMA" : configured;
-  const vaPayload = await request("/customers/virtual-account/custom", {
+  // /customers/virtual-account/custom is retired (410). The new endpoint picks
+  // the provider itself and needs the BVN with names that match it; it may
+  // answer 202 while the number is still being assigned, or 422 when it needs
+  // the customer's own bank account, which we surface to the caller as-is.
+  const vaPayload = await request("/customers/virtual-account", {
     customerId,
-    bankCode,
-    prefix: "FFFCSL",
+    bvn: input.bvn,
+    firstName: input.firstName,
+    lastName: input.lastName,
+    middleName: input.middleName || undefined,
   });
   const account = (vaPayload?.data ?? {}) as Record<string, unknown>;
 
+  if (!account.accountNumber) {
+    const err = new Error(
+      "Your payment account is still being set up. Please try again in a minute."
+    ) as HyparrowError;
+    err.status = 409;
+    err.code = "ACCOUNT_PENDING";
+    throw err;
+  }
+
   return {
-    accountNumber: (account.accountNumber as string) ?? "",
+    accountNumber: account.accountNumber as string,
     accountName: (account.accountName as string) ?? "",
     bankName: (account.bankName as string) ?? "",
     customerId,
