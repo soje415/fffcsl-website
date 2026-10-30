@@ -79,7 +79,9 @@ export async function GET(
           virtualAccountBank: str(row.virtual_account_bank),
           virtualAccountCustomerId: str(row.virtual_account_customer_id),
           paymentMethod: str(row.payment_method),
-          checkoutInvoiceId: str(row.checkout_invoice_id),
+          // Whichever provider's checkout session is on file — only one is
+          // ever populated for a given member at a time.
+          checkoutInvoiceId: str(row.checkout_invoice_id) || str(row.monnify_transaction_ref),
           ussdCode: str(row.ussd_code),
           ussdBankCode: str(row.ussd_bank_code),
           paymentStatus,

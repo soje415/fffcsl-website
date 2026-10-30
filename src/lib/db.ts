@@ -82,6 +82,8 @@ export async function ensureSchema() {
   await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`;
   await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS consent_at TIMESTAMPTZ`;
   await sql()`ALTER TABLE payments ADD COLUMN IF NOT EXISTS account_name TEXT DEFAULT ''`;
+  await sql()`ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT 'hyparrow'`;
+  await sql()`ALTER TABLE farmers ADD COLUMN IF NOT EXISTS monnify_transaction_ref TEXT DEFAULT ''`;
   await sql()`CREATE INDEX IF NOT EXISTS farmers_nin_idx ON farmers (nin) WHERE nin <> ''`;
   await sql()`CREATE INDEX IF NOT EXISTS farmers_bvn_idx ON farmers (bvn) WHERE bvn <> ''`;
   await sql()`CREATE INDEX IF NOT EXISTS farmers_created_idx ON farmers (created_at DESC)`;

@@ -53,3 +53,26 @@ export const hyparrowCheckoutProvider = {
     return data.paid;
   },
 };
+
+/**
+ * Live Monnify hosted checkout, proxied through a serverless route. One
+ * redirect covers card, bank transfer and USSD together, so unlike Hyparrow
+ * this needs no separate per-rail integration.
+ */
+export const monnifyCheckoutProvider = {
+  async initCheckout(memberId: string) {
+    const data = await postJson<{ success: boolean; transactionReference: string; checkoutUrl: string }>(
+      "/api/monnify/checkout",
+      { memberId }
+    );
+    return { transactionReference: data.transactionReference, checkoutUrl: data.checkoutUrl };
+  },
+
+  async checkStatus(transactionReference: string, lang?: "en" | "ha") {
+    const data = await postJson<{ success: boolean; paid: boolean }>(
+      "/api/monnify/checkout/status",
+      { transactionReference, lang }
+    );
+    return data.paid;
+  },
+};

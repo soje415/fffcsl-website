@@ -93,6 +93,10 @@ type ProviderError = Error & { code?: string; status?: number };
 export function providerError(scope: string, err: unknown) {
   const e = err as ProviderError;
   if (e?.status && e.status >= 400 && e.status < 500 && e.message) {
+    // Passed through to the client verbatim, but still worth a server-side
+    // trace — a spike here usually means the upstream rail (e.g. Hyparrow's
+    // Interswitch VA path), not our integration, is the one failing.
+    console.error(`[${scope}] provider ${e.status}${e.code ? ` ${e.code}` : ""}: ${e.message}`);
     return Response.json(
       { success: false, code: e.code ?? "REQUEST_REJECTED", error: e.message },
       { status: e.status }

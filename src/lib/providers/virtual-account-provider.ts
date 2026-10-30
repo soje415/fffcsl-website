@@ -66,6 +66,29 @@ export const hyparrowVirtualAccountProvider: VirtualAccountProvider = {
   },
 };
 
+/**
+ * Live Monnify Reserved Account, proxied through a serverless API route so
+ * the API key/secret never reach the browser.
+ */
+export const monnifyVirtualAccountProvider: VirtualAccountProvider = {
+  async createAccount(input) {
+    const data = await postJson<{ success: boolean; account: VirtualAccount }>(
+      "/api/monnify/virtual-account",
+      { memberId: input.memberId }
+    );
+    return data.account;
+  },
+
+  async checkStatus(customerId, amount, lang) {
+    void amount; // Monnify's own fee record is authoritative server-side, not this.
+    const data = await postJson<{ success: boolean; paid: boolean }>(
+      "/api/monnify/virtual-account/status",
+      { customerId, lang }
+    );
+    return data.paid ? "paid" : "pending";
+  },
+};
+
 export const mockVirtualAccountProvider: VirtualAccountProvider = {
   async createAccount({ firstName, lastName }) {
     await new Promise((r) => setTimeout(r, 600));

@@ -33,7 +33,7 @@ export type RegistrationData = {
   paymentSmsSent: boolean;
 
   paymentStatus: "pending" | "paid";
-  paymentMethod: "" | "bankTransfer" | "ussd" | "opay";
+  paymentMethod: "" | "bankTransfer" | "ussd" | "opay" | "online";
   virtualAccountNumber: string;
   virtualAccountBank: string;
   virtualAccountCustomerId: string;

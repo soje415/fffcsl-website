@@ -2,28 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Check, Loader2, Banknote, Smartphone, Landmark } from "lucide-react";
+import { Copy, Check, Loader2, Banknote, Landmark, ExternalLink } from "lucide-react";
 import { StepNav } from "@/components/registration/step-nav";
-import { SelectInput } from "@/components/registration/field";
 import { useLanguage } from "@/components/registration/language";
-import { hyparrowVirtualAccountProvider, mockVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
-import { hyparrowCheckoutProvider } from "@/lib/providers/checkout-provider";
+import { monnifyVirtualAccountProvider, mockVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
+import { monnifyCheckoutProvider } from "@/lib/providers/checkout-provider";
 import { isDemoMode } from "@/lib/demo-mode";
-import { USSD_BANKS } from "@/lib/ussd-banks";
 import type { RegistrationData } from "@/types/registration";
 
 const FEE = 2500;
 const DEMO = isDemoMode();
-const virtualAccountProvider = DEMO ? mockVirtualAccountProvider : hyparrowVirtualAccountProvider;
+const virtualAccountProvider = DEMO ? mockVirtualAccountProvider : monnifyVirtualAccountProvider;
 
-type Method = "bankTransfer" | "ussd" | "opay";
+type Method = "bankTransfer" | "online";
 
 const ALL_METHODS: { id: Method; label: [string, string]; icon: typeof Landmark }[] = [
   { id: "bankTransfer", label: ["Bank Transfer", "Aika kuɗi"], icon: Landmark },
-  { id: "ussd", label: ["USSD", "USSD"], icon: Smartphone },
-  { id: "opay", label: ["Pay with OPay", "Biya da OPay"], icon: Banknote },
+  { id: "online", label: ["Pay with OPay / Bank App", "Biya da OPay / Manhajar banki"], icon: Banknote },
 ];
-// USSD/OPay have no free-to-run mock (they need a live invoice to confirm
+// Online checkout has no free-to-run mock (it needs a live session to confirm
 // against), so the demo sticks to bank transfer, which mocks instantly.
 const METHODS = DEMO ? ALL_METHODS.filter((m) => m.id === "bankTransfer") : ALL_METHODS;
 
@@ -43,10 +40,9 @@ export function PaymentStep({
   const [checking, setChecking] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
-  const [bankCode, setBankCode] = useState(data.ussdBankCode);
   const pollingRef = useRef(false);
 
-  const method: Method = data.paymentMethod || "bankTransfer";
+  const method: Method = data.paymentMethod === "online" ? "online" : "bankTransfer";
 
   async function generateAccount() {
     setError("");
@@ -119,65 +115,29 @@ export function PaymentStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method, data.virtualAccountNumber, data.paymentStatus, data.virtualAccountCustomerId]);
 
-  async function ensureInvoice(): Promise<string> {
-    if (data.checkoutInvoiceId) return data.checkoutInvoiceId;
-    const invoiceId = await hyparrowCheckoutProvider.createInvoice({
-      memberId: data.memberId,
-      amount: FEE,
-      customerName: `${data.firstName} ${data.lastName}`.trim(),
-      customerEmail: data.email,
-    });
-    update({ checkoutInvoiceId: invoiceId });
-    return invoiceId;
-  }
-
-  async function generateUssd() {
-    if (!bankCode) {
-      setError(t("Select your bank first.", "Fara zaɓi bankinka."));
-      return;
-    }
+  async function payOnline() {
     setError("");
     setGenerating(true);
     try {
-      const invoiceId = await ensureInvoice();
-      const ussdCode = await hyparrowCheckoutProvider.generateUssd(invoiceId, bankCode);
-      const patch = { paymentMethod: "ussd" as const, ussdCode, ussdBankCode: bankCode };
-      update(patch);
+      const { transactionReference, checkoutUrl } = await monnifyCheckoutProvider.initCheckout(data.memberId);
+      update({ paymentMethod: "online", checkoutInvoiceId: transactionReference });
+      window.location.href = checkoutUrl;
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : t("Could not generate a USSD code.", "Ba a iya samar da lambar USSD ba.")
-      );
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  async function payWithOpay() {
-    setError("");
-    setGenerating(true);
-    try {
-      const invoiceId = await ensureInvoice();
-      update({ paymentMethod: "opay" });
-      const redirectUrl = await hyparrowCheckoutProvider.initOpay(invoiceId);
-      window.location.href = redirectUrl;
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t("Could not start OPay checkout.", "Ba a iya fara biyan OPay ba.")
+          : t("Could not start checkout. Please try again.", "Ba a iya fara biya ba. Da fatan sake gwadawa.")
       );
       setGenerating(false);
     }
   }
 
-  async function checkCheckoutPayment(silent: boolean) {
+  async function checkOnlinePayment(silent: boolean) {
     if (pollingRef.current || !data.checkoutInvoiceId) return;
     pollingRef.current = true;
     if (!silent) setChecking(true);
     try {
-      const paid = await hyparrowCheckoutProvider.checkStatus(data.checkoutInvoiceId, lang);
+      const paid = await monnifyCheckoutProvider.checkStatus(data.checkoutInvoiceId, lang);
       if (paid) {
         update({ paymentStatus: "paid" });
       } else if (!silent) {
@@ -198,23 +158,17 @@ export function PaymentStep({
     }
   }
 
-  // Covers both USSD (waiting for the dial) and OPay (after the redirect back).
+  // Covers the return from the hosted checkout page.
   useEffect(() => {
-    if (method !== "ussd" && method !== "opay") return;
+    if (method !== "online") return;
     if (!data.checkoutInvoiceId || data.paymentStatus === "paid") return;
-    const id = setInterval(() => checkCheckoutPayment(true), 5000);
+    const id = setInterval(() => checkOnlinePayment(true), 5000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method, data.checkoutInvoiceId, data.paymentStatus]);
 
   function copyAccount() {
     navigator.clipboard.writeText(data.virtualAccountNumber);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }
-
-  function copyUssd() {
-    navigator.clipboard.writeText(data.ussdCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -237,13 +191,13 @@ export function PaymentStep({
                 `Yanayin gwaji yana kwaikwayon kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} — zai tabbata da kansa cikin ƴan daƙiƙa, ba tare da ainihin turawa ba.`
               )
             : t(
-                `Pay your ₦${FEE.toLocaleString()} FFFCSL ID card fee by bank transfer, USSD, or OPay — this page confirms automatically once it arrives.`,
-                `Biya kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} ta hanyar aika kuɗi, USSD, ko OPay — shafin zai tabbatar da kansa da zarar ya iso.`
+                `Pay your ₦${FEE.toLocaleString()} FFFCSL ID card fee by bank transfer or your OPay / bank app — this page confirms automatically once it arrives.`,
+                `Biya kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} ta hanyar aika kuɗi ko manhajar OPay / banki — shafin zai tabbatar da kansa da zarar ya iso.`
               )}
         </p>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-2">
+      <div className="mt-5 grid grid-cols-2 gap-2">
         {METHODS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -364,98 +318,32 @@ export function PaymentStep({
               </motion.div>
             )}
 
-            {method === "ussd" && (
-              <motion.div key="ussd" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-                {!data.ussdCode ? (
-                  <div className="rounded-xl border border-line bg-white p-6">
-                    <label className="text-sm font-medium text-ink-soft">
-                      {t("Select your bank", "Zaɓi bankinka")}
-                    </label>
-                    <SelectInput
-                      className="mt-1.5"
-                      value={bankCode}
-                      onChange={(e) => setBankCode(e.target.value)}
-                    >
-                      <option value="" disabled>
-                        {t("Select a bank", "Zaɓi banki")}
-                      </option>
-                      {USSD_BANKS.map((b) => (
-                        <option key={b.code} value={b.code}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </SelectInput>
-                    <button
-                      type="button"
-                      onClick={generateUssd}
-                      disabled={generating || !bankCode}
-                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
-                    >
-                      {generating && <Loader2 size={16} className="animate-spin" />}
-                      {generating
-                        ? t("Generating code...", "Ana samar da lambar...")
-                        : t("Generate USSD Code", "Samar da Lambar USSD")}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-line bg-white p-6 text-center">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-terracotta">
-                      {t("Dial this code", "Bugi wannan lambar")}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={copyUssd}
-                      className="mx-auto mt-2 inline-flex items-center gap-2 font-mono text-3xl font-semibold text-forest-dark"
-                    >
-                      {data.ussdCode}
-                      {copied ? <Check size={18} /> : <Copy size={18} />}
-                    </button>
-                    <p className="mt-2 text-sm text-ink-soft">
-                      {t(
-                        `Dial this on your phone to pay ₦${FEE.toLocaleString()} — checking automatically…`,
-                        `Bugi wannan a wayarka don biyan ₦${FEE.toLocaleString()} — ana dubawa ta atomatik…`
-                      )}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => checkCheckoutPayment(false)}
-                      disabled={checking}
-                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-semibold text-ink transition-colors hover:brightness-95 disabled:opacity-60"
-                    >
-                      {checking && <Loader2 size={16} className="animate-spin" />}
-                      {checking ? t("Checking...", "Ana dubawa...") : t("Check Now", "Duba Yanzu")}
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {method === "opay" && (
-              <motion.div key="opay" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+            {method === "online" && (
+              <motion.div key="online" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
                 {data.checkoutInvoiceId ? (
                   <div className="rounded-xl border border-line bg-white p-6 text-center">
                     <div className="mx-auto flex items-center gap-3 rounded-lg bg-cream-soft p-4 text-left">
                       <Loader2 size={18} className="animate-spin text-forest shrink-0" />
                       <p className="text-sm text-ink-soft">
                         {t(
-                          "If you were sent back here before finishing on OPay, check now or tap the button again to reopen OPay.",
-                          "Idan an dawo da kai nan kafin ka gama a OPay, danna duba yanzu ko sake danna maballin don sake buɗe OPay."
+                          "If you were sent back here before finishing payment, check now or tap the button again to reopen the payment page.",
+                          "Idan an dawo da kai nan kafin ka gama biya, danna duba yanzu ko sake danna maballin don sake buɗe shafin biya."
                         )}
                       </p>
                     </div>
                     <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                       <button
                         type="button"
-                        onClick={payWithOpay}
+                        onClick={payOnline}
                         disabled={generating}
                         className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
                       >
                         {generating && <Loader2 size={16} className="animate-spin" />}
-                        {t("Reopen OPay", "Sake buɗe OPay")}
+                        {t("Reopen Payment Page", "Sake buɗe shafin biya")}
                       </button>
                       <button
                         type="button"
-                        onClick={() => checkCheckoutPayment(false)}
+                        onClick={() => checkOnlinePayment(false)}
                         disabled={checking}
                         className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-semibold text-ink transition-colors hover:brightness-95 disabled:opacity-60"
                       >
@@ -467,14 +355,14 @@ export function PaymentStep({
                 ) : (
                   <button
                     type="button"
-                    onClick={payWithOpay}
+                    onClick={payOnline}
                     disabled={generating}
                     className="inline-flex items-center gap-2 rounded-full bg-forest px-6 py-3 text-sm font-semibold text-cream transition-colors hover:bg-forest-dark disabled:opacity-60"
                   >
-                    {generating && <Loader2 size={16} className="animate-spin" />}
+                    {generating ? <Loader2 size={16} className="animate-spin" /> : <ExternalLink size={16} />}
                     {generating
-                      ? t("Redirecting to OPay...", "Ana kai ka OPay...")
-                      : t(`Pay ₦${FEE.toLocaleString()} with OPay`, `Biya ₦${FEE.toLocaleString()} da OPay`)}
+                      ? t("Redirecting...", "Ana turawa...")
+                      : t(`Pay ₦${FEE.toLocaleString()} Now`, `Biya ₦${FEE.toLocaleString()} Yanzu`)}
                   </button>
                 )}
               </motion.div>
