@@ -1,9 +1,15 @@
 const DEFAULT_BASE_URL = "https://api.bachs.io";
 
 function config() {
-  const apiKey = process.env.BACHS_API_KEY;
+  // Pasted env values often carry a trailing newline or space, which makes the
+  // Authorization header invalid; strip it, and never echo the key in an error.
+  const apiKey = process.env.BACHS_API_KEY?.replace(/\s+/g, "");
   if (!apiKey) throw new Error("Bachs is not configured (set BACHS_API_KEY).");
-  return { baseUrl: (process.env.BACHS_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, ""), apiKey };
+  if (!/^[\x21-\x7E]+$/.test(apiKey)) {
+    throw new Error("BACHS_API_KEY contains characters that can't be sent; re-enter it without quotes or line breaks.");
+  }
+  const baseUrl = (process.env.BACHS_BASE_URL?.trim() || DEFAULT_BASE_URL).replace(/\/+$/, "");
+  return { baseUrl, apiKey };
 }
 
 export type BachsError = Error & { code?: string; status?: number };

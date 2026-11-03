@@ -25,7 +25,7 @@ function validSignature(raw: string, header: string, secret: string): boolean {
 }
 
 export async function POST(req: Request) {
-  const secret = process.env.BACHS_WEBHOOK_SECRET;
+  const secret = process.env.BACHS_WEBHOOK_SECRET?.trim();
   if (!secret) {
     // Fail closed: without a secret anyone could forge "payment received".
     console.error("[bachs-webhook] BACHS_WEBHOOK_SECRET is not set; rejecting");
