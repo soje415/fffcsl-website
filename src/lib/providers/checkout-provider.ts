@@ -76,3 +76,25 @@ export const monnifyCheckoutProvider = {
     return data.paid;
   },
 };
+
+/**
+ * Live Bachs hosted checkout (card or bank transfer), proxied through a
+ * serverless route so the API key never reaches the browser.
+ */
+export const bachsCheckoutProvider = {
+  async initCheckout(memberId: string) {
+    const data = await postJson<{ success: boolean; transactionReference: string; checkoutUrl: string }>(
+      "/api/bachs/checkout",
+      { memberId }
+    );
+    return { transactionReference: data.transactionReference, checkoutUrl: data.checkoutUrl };
+  },
+
+  async checkStatus(transactionReference: string, lang?: "en" | "ha") {
+    const data = await postJson<{ success: boolean; paid: boolean }>(
+      "/api/bachs/checkout/status",
+      { transactionReference, lang }
+    );
+    return data.paid;
+  },
+};

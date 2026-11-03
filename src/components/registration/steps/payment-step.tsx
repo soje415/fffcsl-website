@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Copy, Check, Loader2, Banknote, Landmark, ExternalLink } from "lucide-react";
 import { StepNav } from "@/components/registration/step-nav";
 import { useLanguage } from "@/components/registration/language";
-import { monnifyVirtualAccountProvider, mockVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
-import { monnifyCheckoutProvider } from "@/lib/providers/checkout-provider";
+import { mockVirtualAccountProvider, monnifyVirtualAccountProvider } from "@/lib/providers/virtual-account-provider";
+import { bachsCheckoutProvider } from "@/lib/providers/checkout-provider";
 import { isDemoMode } from "@/lib/demo-mode";
 import type { RegistrationData } from "@/types/registration";
 
@@ -18,11 +18,14 @@ type Method = "bankTransfer" | "online";
 
 const ALL_METHODS: { id: Method; label: [string, string]; icon: typeof Landmark }[] = [
   { id: "bankTransfer", label: ["Bank Transfer", "Aika kuɗi"], icon: Landmark },
-  { id: "online", label: ["Pay with OPay / Bank App", "Biya da OPay / Manhajar banki"], icon: Banknote },
+  { id: "online", label: ["Card / Bank Transfer", "Kati / Aika kuɗi"], icon: Banknote },
 ];
 // Online checkout has no free-to-run mock (it needs a live session to confirm
 // against), so the demo sticks to bank transfer, which mocks instantly.
-const METHODS = DEMO ? ALL_METHODS.filter((m) => m.id === "bankTransfer") : ALL_METHODS;
+// Live payments go through Bachs hosted checkout only (card or bank transfer);
+// the per-applicant virtual account is paused because Bachs issues one
+// account number per business, not per payer.
+const METHODS = ALL_METHODS.filter((m) => m.id === (DEMO ? "bankTransfer" : "online"));
 
 export function PaymentStep({
   data,
@@ -42,7 +45,7 @@ export function PaymentStep({
   const [error, setError] = useState("");
   const pollingRef = useRef(false);
 
-  const method: Method = data.paymentMethod === "online" ? "online" : "bankTransfer";
+  const method: Method = DEMO ? "bankTransfer" : "online";
 
   async function generateAccount() {
     setError("");
@@ -119,7 +122,7 @@ export function PaymentStep({
     setError("");
     setGenerating(true);
     try {
-      const { transactionReference, checkoutUrl } = await monnifyCheckoutProvider.initCheckout(data.memberId);
+      const { transactionReference, checkoutUrl } = await bachsCheckoutProvider.initCheckout(data.memberId);
       update({ paymentMethod: "online", checkoutInvoiceId: transactionReference });
       window.location.href = checkoutUrl;
     } catch (err) {
@@ -137,7 +140,7 @@ export function PaymentStep({
     pollingRef.current = true;
     if (!silent) setChecking(true);
     try {
-      const paid = await monnifyCheckoutProvider.checkStatus(data.checkoutInvoiceId, lang);
+      const paid = await bachsCheckoutProvider.checkStatus(data.checkoutInvoiceId, lang);
       if (paid) {
         update({ paymentStatus: "paid" });
       } else if (!silent) {
@@ -191,8 +194,8 @@ export function PaymentStep({
                 `Yanayin gwaji yana kwaikwayon kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} — zai tabbata da kansa cikin ƴan daƙiƙa, ba tare da ainihin turawa ba.`
               )
             : t(
-                `Pay your ₦${FEE.toLocaleString()} FFFCSL ID card fee by bank transfer or your OPay / bank app — this page confirms automatically once it arrives.`,
-                `Biya kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} ta hanyar aika kuɗi ko manhajar OPay / banki — shafin zai tabbatar da kansa da zarar ya iso.`
+                `Pay your ₦${FEE.toLocaleString()} FFFCSL ID card fee by card or bank transfer (from any bank or wallet app) — this page confirms automatically once it arrives.`,
+                `Biya kuɗin katin shaida na FFFCSL na ₦${FEE.toLocaleString()} ta hanyar kati ko aika kuɗi (daga kowane banki ko manhajar waya) — shafin zai tabbatar da kansa da zarar ya iso.`
               )}
         </p>
       </div>
