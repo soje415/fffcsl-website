@@ -40,7 +40,7 @@ export default function ContactPage() {
               <div className="flex items-start gap-3">
                 <Phone size={18} className="mt-0.5 shrink-0 text-forest" />
                 <p className="text-sm text-ink-soft">
-                  +234 (0) 904 324 0455
+                  08068631370
                 </p>
               </div>
               <div className="flex items-start gap-3">
@@ -52,8 +52,6 @@ export default function ContactPage() {
                   Gona Amanace Investment Nig Ltd (RC 8499191)
                   <br />
                   Plot 2978, Nile Street, Maitama, Abuja
-                  <br />
-                  Tel: 08068631370
                 </p>
               </div>
             </div>
