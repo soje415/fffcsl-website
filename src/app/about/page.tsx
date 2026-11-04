@@ -145,6 +145,27 @@ export default function AboutPage() {
           </RevealGroup>
         </Container>
       </section>
+      <section className="border-t border-line py-16 sm:py-20">
+        <Container>
+          <Reveal>
+            <p className="text-sm font-semibold uppercase tracking-widest text-terracotta">
+              Commercial Partner
+            </p>
+            <h2 className="mt-3 max-w-2xl font-serif text-3xl font-semibold text-forest-dark">
+              Powered by Gona Amanace Investment Nig Ltd
+            </h2>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-ink-soft">
+              FFFCSL is powered by Gona Amanace Investment Nig Ltd (RC
+              8499191), its commercial partner. Gona Amanace purchases
+              agricultural produce supplied by FFFCSL cooperative members,
+              aggregates it, and markets and sells it onward to customers and
+              other buyers, supporting the commercialisation of members&apos;
+              produce. Gona Amanace Investment Nig Ltd is registered at Plot
+              2978, Nile Street, Maitama, Abuja (tel. 08068631370).
+            </p>
+          </Reveal>
+        </Container>
+      </section>
     </>
   );
 }

@@ -43,6 +43,19 @@ export default function ContactPage() {
                   +234 (0) 904 324 0455
                 </p>
               </div>
+              <div className="flex items-start gap-3">
+                <MapPin size={18} className="mt-0.5 shrink-0 text-forest" />
+                <p className="text-sm leading-relaxed text-ink-soft">
+                  <span className="font-semibold text-forest-dark">
+                    Commercial partner:
+                  </span>{" "}
+                  Gona Amanace Investment Nig Ltd (RC 8499191)
+                  <br />
+                  Plot 2978, Nile Street, Maitama, Abuja
+                  <br />
+                  Tel: 08068631370
+                </p>
+              </div>
             </div>
           </Reveal>
 
